@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { db } from "@/lib/db";
-import { orders } from "@/lib/db/schema";
+import { orders, documents } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { s3, BUCKET } from "@/lib/s3";
 import { generateInvoicePdf } from "@/lib/invoice";
@@ -75,6 +75,14 @@ export async function POST(req: NextRequest) {
     }));
 
     await db.update(orders).set({ invoiceKey }).where(eq(orders.orderRef, orderRef));
+
+    await db.insert(documents).values({
+      type: "INVOICE",
+      source: "STORE",
+      key: invoiceKey,
+      orderRef,
+      filename: `Invoice-${orderRef}.pdf`,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err) {

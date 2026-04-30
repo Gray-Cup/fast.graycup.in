@@ -16,6 +16,7 @@ type Order = {
   customerPincode: string;
   status: string;
   invoiceNumber: string | null;
+  invoiceKey: string | null;
   createdAt: string;
 };
 
@@ -130,6 +131,7 @@ export default function InvoicesPage() {
                 <th className="px-4 py-3 font-semibold text-gray-600">GST</th>
                 <th className="px-4 py-3 font-semibold text-gray-600">Status</th>
                 <th className="px-4 py-3 font-semibold text-gray-600">Date</th>
+                <th className="px-4 py-3 font-semibold text-gray-600">PDF</th>
               </tr>
             </thead>
             <tbody>
@@ -163,10 +165,25 @@ export default function InvoicesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-400">{new Date(o.createdAt).toLocaleDateString("en-IN")}</td>
+                  <td className="px-4 py-3">
+                    {o.invoiceKey && (
+                      <a
+                        href={`/api/invoice/${o.orderRef}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 hover:text-amber-700"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        PDF
+                      </a>
+                    )}
+                  </td>
                 </tr>
               ))}
               {orders.length === 0 && (
-                <tr><td colSpan={9} className="text-center py-12 text-gray-400">No orders found</td></tr>
+                <tr><td colSpan={10} className="text-center py-12 text-gray-400">No orders found</td></tr>
               )}
             </tbody>
           </table>
