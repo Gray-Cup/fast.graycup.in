@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Sidebar from "@/components/Sidebar";
 
 export const metadata: Metadata = {
   title: "Gray Cup Admin",
@@ -13,7 +14,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <a href="/" className="text-lg font-black text-gray-900 hover:text-amber-600 transition-colors">Gray Cup <span className="text-amber-500">Admin</span></a>
           <a href="/" target="_blank" className="text-xs text-gray-400 hover:text-gray-600">View Store →</a>
         </nav>
-        <main className="p-6">{children}</main>
+        <div className="flex">
+          <Sidebar />
+          <main className="flex-1 p-6">{children}</main>
+        </div>
       </body>
     </html>
   );
