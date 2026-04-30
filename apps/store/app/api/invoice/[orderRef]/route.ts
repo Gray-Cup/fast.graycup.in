@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -20,6 +20,23 @@ export async function GET(
 
   const order = rows[0];
 
+  // Serve from bucket0 if already uploaded
+  if (order.invoiceKey) {
+    try {
+      const s3Res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: order.invoiceKey }));
+      const bytes = await s3Res.Body!.transformToByteArray();
+      const buffer = new ArrayBuffer(bytes.byteLength);
+      new Uint8Array(buffer).set(bytes);
+      return new Response(buffer, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="Invoice-${orderRef}.pdf"`,
+        },
+      });
+    } catch {}
+  }
+
+  // Generate, upload to bucket0, then serve
   const pdf = await generateInvoicePdf({
     invoiceNumber: order.invoiceNumber ?? "—",
     orderRef: order.orderRef,
@@ -36,10 +53,21 @@ export async function GET(
     gstAmount: order.gstAmount,
   });
 
+  const key = `invoices/${orderRef}.pdf`;
+
+  await s3.send(new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    Body: new Uint8Array(pdf),
+    ContentType: "application/pdf",
+  }));
+
+  await db.update(orders).set({ invoiceKey: key }).where(eq(orders.orderRef, orderRef));
+
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="Invoice-${orderRef}.pdf"`,
+      "Content-Disposition": `attachment; filename="Invoice-${orderRef}.pdf"`,
     },
   });
 }

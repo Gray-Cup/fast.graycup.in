@@ -10,10 +10,51 @@ interface CheckoutModalProps {
   onClose: () => void;
 }
 
+const DELHIVERY_STATES = [
+  "Andaman and Nicobar Islands",
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chandigarh",
+  "Chhattisgarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jammu and Kashmir",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Ladakh",
+  "Lakshadweep",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Puducherry",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+];
+
 interface FormData {
   name: string;
   phone: string;
   address: string;
+  city: string;
+  state: string;
   pincode: string;
   email: string;
 }
@@ -32,6 +73,8 @@ export default function CheckoutModal({
     name: "",
     phone: "",
     address: "",
+    city: "",
+    state: "",
     pincode: "",
     email: "",
   });
@@ -56,7 +99,7 @@ export default function CheckoutModal({
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -76,7 +119,10 @@ export default function CheckoutModal({
           weightGrams: variant.weightGrams * quantity,
           quantity,
           amount: total,
-          customer: form,
+          customer: {
+            ...form,
+            address: `${form.address}, ${form.city}, ${form.state}`,
+          },
         }),
       });
 
@@ -173,8 +219,27 @@ export default function CheckoutModal({
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1.5">Delivery Address</label>
               <textarea name="address" value={form.address} onChange={handleChange}
-                required rows={3} placeholder="House no., street, area, city, state"
+                required rows={3} placeholder="House no., street, area"
                 className={`${inputClass} resize-none`} autoComplete="street-address" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">City</label>
+              <input name="city" type="text" value={form.city} onChange={handleChange}
+                required placeholder="e.g. New Delhi"
+                className={inputClass} autoComplete="address-level2" />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">State</label>
+              <select name="state" value={form.state} onChange={handleChange} required
+                className={inputClass}
+              >
+                <option value="">Select state</option>
+                {DELHIVERY_STATES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </div>
 
             <div>
