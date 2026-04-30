@@ -30,6 +30,6 @@ export async function generateOrderRef(): Promise<string> {
 
 export async function generateInvoiceRef(): Promise<string> {
   const result = await db.execute<{ nextval: number }>(sql`SELECT nextval('invoice_seq')`);
-  const n = result[0]?.nextval ?? 1;
+  const n = result.rows[0]?.nextval ?? 1;
   return `GCFINV-${String(n).padStart(4, "0")}`;
 }
