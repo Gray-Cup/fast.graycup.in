@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { s3, BUCKET } from "@/lib/s3";
+import { generateInvoicePdf } from "@/lib/invoice";
 
 export async function GET(
   req: NextRequest,
@@ -11,26 +12,33 @@ export async function GET(
 ) {
   const { orderRef } = await params;
 
-  const rows = await db.select({ invoiceKey: orders.invoiceKey })
-    .from(orders)
-    .where(eq(orders.orderRef, orderRef))
-    .limit(1);
+  const rows = await db.select().from(orders).where(eq(orders.orderRef, orderRef)).limit(1);
 
-  if (!rows.length || !rows[0].invoiceKey) {
-    return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
+  if (!rows.length) {
+    return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  const key = rows[0].invoiceKey;
-  const response = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+  const order = rows[0];
 
-  const chunks: Uint8Array[] = [];
-  const body = response.Body as AsyncIterable<Uint8Array>;
-  for await (const chunk of body) {
-    chunks.push(chunk);
-  }
-  const html = Buffer.concat(chunks);
+  const pdf = await generateInvoicePdf({
+    orderRef: order.orderRef,
+    date: order.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+    customerName: order.customerName,
+    customerPhone: order.customerPhone,
+    customerEmail: order.customerEmail,
+    customerAddress: order.customerAddress,
+    customerPincode: order.customerPincode,
+    productName: order.productName,
+    variantLabel: order.variantLabel,
+    quantity: order.quantity,
+    amount: order.amount,
+    gstAmount: order.gstAmount,
+  });
 
-  return new Response(html, {
-    headers: { "Content-Type": "text/html; charset=utf-8" },
+  return new Response(new Uint8Array(pdf), {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="Invoice-${orderRef}.pdf"`,
+    },
   });
 }

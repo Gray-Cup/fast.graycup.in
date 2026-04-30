@@ -6,7 +6,7 @@ import { orders } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { s3, BUCKET } from "@/lib/s3";
 import { createShipment, getPincodeDetails } from "@/lib/delhivery";
-import { generateInvoiceHtml } from "@/lib/invoice";
+import { generateInvoicePdf } from "@/lib/invoice";
 
 export async function POST(req: NextRequest) {
   try {
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         .where(eq(orders.orderRef, orderRef));
     }
 
-    const invoiceHtml = generateInvoiceHtml({
+    const invoicePdf = await generateInvoicePdf({
       orderRef,
       date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
       customerName: order.customerName,
@@ -89,12 +89,12 @@ export async function POST(req: NextRequest) {
       gstAmount: order.gstAmount,
     });
 
-    const invoiceKey = `invoices/${orderRef}.html`;
+    const invoiceKey = `invoices/${orderRef}.pdf`;
     await s3.send(new PutObjectCommand({
       Bucket: BUCKET,
       Key: invoiceKey,
-      Body: Buffer.from(invoiceHtml, "utf-8"),
-      ContentType: "text/html",
+      Body: new Uint8Array(invoicePdf),
+      ContentType: "application/pdf",
     }));
 
     await db.update(orders).set({ invoiceKey }).where(eq(orders.orderRef, orderRef));
