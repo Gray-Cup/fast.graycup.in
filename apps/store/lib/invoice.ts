@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import { Writable } from "stream";
 
 interface InvoiceData {
+  invoiceNumber: string;
   orderRef: string;
   date: string;
   customerName: string;
@@ -34,8 +35,9 @@ export async function generateInvoicePdf(d: InvoiceData): Promise<Buffer> {
     const endX = doc.page.width - 50;
 
     doc.fontSize(20).font("Helvetica-Bold").fillColor(black).text("Invoice", startX, doc.y);
-    doc.fontSize(10).fillColor(gray).text(d.orderRef, startX, doc.y + 22);
-    doc.fontSize(10).fillColor(gray).text(d.date, startX, doc.y + 36);
+    doc.fontSize(10).fillColor(gray).text(`Invoice #: ${d.invoiceNumber}`, startX, doc.y + 22);
+    doc.fontSize(10).fillColor(gray).text(`Order: ${d.orderRef}`, startX, doc.y + 36);
+    doc.fontSize(10).fillColor(gray).text(d.date, startX, doc.y + 50);
 
     let y = doc.y + 20;
     doc.fontSize(9).fillColor(lightGray).text("BILL TO", startX, y);
@@ -80,81 +82,4 @@ export async function generateInvoicePdf(d: InvoiceData): Promise<Buffer> {
 
     doc.end();
   });
-}
-
-export function generateInvoiceHtml(d: InvoiceData): string {
-  const base = d.amount - d.gstAmount;
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Invoice ${d.orderRef}</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #000; background: #fff; padding: 40px; max-width: 600px; margin: 0 auto; font-size: 14px; }
-  .header { margin-bottom: 32px; }
-  .header h1 { font-size: 24px; font-weight: 900; }
-  .header p { color: #666; font-size: 12px; margin-top: 4px; }
-  .meta { display: flex; gap: 40px; margin-bottom: 32px; }
-  .meta-block { font-size: 12px; }
-  .meta-block strong { display: block; font-size: 14px; margin-bottom: 4px; }
-  .meta-block p { color: #666; line-height: 1.6; }
-  .divider { border-bottom: 1px solid #ddd; margin-bottom: 16px; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-  thead th { font-size: 11px; color: #999; text-align: left; padding-bottom: 8px; font-weight: 400; }
-  tbody td { padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; }
-  .totals { margin-left: auto; width: 200px; }
-  .totals-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; color: #666; }
-  .totals-row.total { font-weight: 900; font-size: 16px; color: #000; border-top: 1px solid #000; padding-top: 8px; margin-top: 4px; }
-  .footer { margin-top: 40px; font-size: 11px; color: #999; text-align: center; }
-</style>
-</head>
-<body>
-  <div class="header">
-    <h1>Invoice</h1>
-    <p>${d.orderRef} &nbsp;·&nbsp; ${d.date}</p>
-  </div>
-
-  <div class="meta">
-    <div class="meta-block">
-      <strong>Bill To</strong>
-      <p>${d.customerName}<br>${d.customerAddress}<br>${d.customerPincode}<br>${d.customerPhone}${d.customerEmail ? `<br>${d.customerEmail}` : ""}</p>
-    </div>
-    <div class="meta-block">
-      <strong>From</strong>
-      <p>Gray Cup Enterprises<br>FF122, Rodeo Drive Mall, GT Road, TDI City, Kundli, Sonipat, Haryana 131030<br>GSTIN: 06AAMCG4985H1Z4<br>office@graycup.in</p>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Item</th>
-        <th>Pack</th>
-        <th style="text-align:center">Qty</th>
-        <th style="text-align:right">Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>${d.productName}</td>
-        <td>${d.variantLabel}</td>
-        <td style="text-align:center">${d.quantity}</td>
-        <td style="text-align:right">₹${d.amount}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="totals">
-    <div class="totals-row"><span>Subtotal</span><span>₹${base}</span></div>
-    <div class="totals-row"><span>GST 5%</span><span>₹${d.gstAmount}</span></div>
-    <div class="totals-row total"><span>Total</span><span>₹${d.amount}</span></div>
-  </div>
-
-  <div class="footer">Thank you for your order. This is a computer-generated invoice.</div>
-</body>
-</html>`;
 }

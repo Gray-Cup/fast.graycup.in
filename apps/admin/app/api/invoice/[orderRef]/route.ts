@@ -14,6 +14,7 @@ export async function GET(
 
   const order = rows[0];
   const pdf = await generateInvoicePdf({
+    invoiceNumber: order.invoiceNumber ?? "—",
     orderRef: order.orderRef,
     date: order.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
     customerName: order.customerName,

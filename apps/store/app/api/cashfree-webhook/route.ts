@@ -6,6 +6,7 @@ import { orders } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { s3, BUCKET } from "@/lib/s3";
 import { generateInvoicePdf } from "@/lib/invoice";
+import { generateInvoiceRef } from "@graycup/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -45,9 +46,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    await db.update(orders).set({ status: "PAID" }).where(eq(orders.orderRef, orderRef));
+    const invoiceNumber = await generateInvoiceRef();
+
+    await db.update(orders).set({ status: "PAID", invoiceNumber }).where(eq(orders.orderRef, orderRef));
 
     const invoicePdf = await generateInvoicePdf({
+      invoiceNumber,
       orderRef,
       date: order.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
       customerName: order.customerName,

@@ -27,3 +27,9 @@ export async function generateOrderRef(): Promise<string> {
   const n = Number(result[0].count) + 1;
   return `GCF-${String(n).padStart(4, "0")}`;
 }
+
+export async function generateInvoiceRef(): Promise<string> {
+  const result = await db.execute<{ nextval: number }>(sql`SELECT nextval('invoice_seq')`);
+  const n = result[0]?.nextval ?? 1;
+  return `GCFINV-${String(n).padStart(4, "0")}`;
+}

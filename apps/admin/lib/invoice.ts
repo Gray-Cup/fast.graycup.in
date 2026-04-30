@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import { Writable } from "stream";
 
 interface InvoiceData {
+  invoiceNumber: string;
   orderRef: string;
   date: string;
   customerName: string;
@@ -16,9 +17,107 @@ interface InvoiceData {
   gstAmount: number;
 }
 
-export async function generateInvoicePdf(d: InvoiceData): Promise<Buffer> {
+function drawInvoice(doc: typeof PDFDocument.prototype, d: InvoiceData, x: number, y: number, w: number, h: number) {
+  const black = "#000000";
+  const gray = "#666666";
+  const lightGray = "#999999";
+  const margin = 8;
+  const innerW = w - margin * 2;
+
+  doc.fontSize(7).font("Helvetica-Bold").fillColor(black).text("Invoice", x + margin, y + margin);
+  doc.fontSize(6).fillColor(gray).text(`${d.invoiceNumber}`, x + margin, y + margin + 10);
+  doc.fontSize(5.5).fillColor(gray).text(d.date, x + margin, y + margin + 18);
+
+  doc.fontSize(5).fillColor(lightGray).text("BILL TO", x + margin, y + margin + 30);
+  doc.fontSize(6.5).font("Helvetica-Bold").fillColor(black).text(d.customerName, x + margin, y + margin + 38);
+  doc.font("Helvetica").fontSize(5.5).fillColor(gray).text(
+    `${d.customerAddress} ${d.customerPincode}`,
+    x + margin, y + margin + 48, { width: innerW - 60 }
+  );
+  doc.text(d.customerPhone, x + margin, doc.y + 6);
+  if (d.customerEmail) doc.text(d.customerEmail, x + margin, doc.y + 6);
+
+  doc.fontSize(5).fillColor(lightGray).text("FROM", x + margin, y + margin + 30);
+  doc.fontSize(6.5).font("Helvetica-Bold").fillColor(black).text("Gray Cup Enterprises", x + w - margin - 90, y + margin + 30);
+  doc.font("Helvetica").fontSize(5.5).fillColor(gray).text("FF122, Rodeo Drive Mall, GT Road, TDI City, Kundli, Sonipat, Haryana 131030", x + w - margin - 90, y + margin + 40, { width: 90 });
+  doc.text("GSTIN: 06AAMCG4985H1Z4", x + w - margin - 90, doc.y + 5);
+  doc.text("office@graycup.in", x + w - margin - 90, doc.y + 5);
+
+  const tableY = y + margin + 78;
+  doc.moveTo(x + margin, tableY).lineTo(x + w - margin, tableY).strokeColor(lightGray).lineWidth(0.3).stroke();
+  doc.fontSize(5).fillColor(lightGray).text("Item", x + margin, tableY + 3);
+  doc.text("Pack", x + margin + innerW * 0.45, tableY + 3);
+  doc.text("Qty", x + margin + innerW * 0.7, tableY + 3, { align: "center" });
+  doc.text("Amount", x + w - margin, tableY + 3, { align: "right", width: 40 });
+
+  const rowY = tableY + 12;
+  doc.fontSize(6).font("Helvetica").fillColor(black).text(d.productName, x + margin, rowY, { width: innerW * 0.44 });
+  doc.text(d.variantLabel, x + margin + innerW * 0.45, rowY);
+  doc.text(String(d.quantity), x + margin + innerW * 0.7, rowY, { align: "center" });
+  doc.text(`₹${d.amount}`, x + w - margin, rowY, { align: "right", width: 40 });
+
+  const subtotal = d.amount - d.gstAmount;
+  const totalsY = rowY + 14;
+  doc.moveTo(x + margin, totalsY).lineTo(x + w - margin, totalsY).strokeColor(lightGray).lineWidth(0.3).stroke();
+  doc.fontSize(5.5).fillColor(gray).text("Subtotal", x + margin + innerW * 0.5, totalsY + 4).text(`₹${subtotal}`, x + w - margin, totalsY + 4, { align: "right", width: 40 });
+  doc.text("GST 5%", x + margin + innerW * 0.5, totalsY + 13).text(`₹${d.gstAmount}`, x + w - margin, totalsY + 13, { align: "right", width: 40 });
+  doc.moveTo(x + margin + innerW * 0.5, totalsY + 20).lineTo(x + w - margin, totalsY + 20).strokeColor(black).lineWidth(0.5).stroke();
+  doc.fontSize(7).font("Helvetica-Bold").fillColor(black).text("Total", x + margin + innerW * 0.5, totalsY + 24).text(`₹${d.amount}`, x + w - margin, totalsY + 24, { align: "right", width: 40 });
+
+  doc.fontSize(4.5).fillColor(lightGray).text(`${d.orderRef}`, x + margin, totalsY + 34);
+}
+
+export async function generateMultiInvoicePdf(invoices: InvoiceData[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50 });
+    const doc = new PDFDocument({ margin: 20, size: "A4" });
+    const chunks: Buffer[] = [];
+    const writable = new Writable({
+      write(chunk, _enc, cb) { chunks.push(chunk); cb(); }
+    });
+    writable.on("finish", () => resolve(Buffer.concat(chunks)));
+    writable.on("error", reject);
+    doc.pipe(writable);
+
+    const pageW = doc.page.width;
+    const pageH = doc.page.height;
+    const margin = 20;
+    const footerH = 30;
+    const contentH = pageH - margin * 2 - footerH;
+
+    const cols = 2;
+    const rows = 2;
+    const gapX = 14;
+    const gapY = 14;
+    const availW = pageW - margin * 2;
+    const availH = contentH;
+    const boxW = (availW - gapX * (cols - 1)) / cols;
+    const boxH = (availH - gapY * (rows - 1)) / rows;
+
+    for (let i = 0; i < invoices.length; i += cols * rows) {
+      if (i > 0) doc.addPage();
+
+      const batch = invoices.slice(i, i + cols * rows);
+      for (let j = 0; j < batch.length; j++) {
+        const col = j % cols;
+        const row = Math.floor(j / cols);
+        const x = margin + col * (boxW + gapX);
+        const y = margin + row * (boxH + gapY);
+        drawInvoice(doc, batch[j], x, y, boxW, boxH);
+      }
+
+      doc.fontSize(7).fillColor("#999999").text(
+        "Gray Cup Enterprises  ·  GSTIN: 06AAMCG4985H1Z4  ·  office@graycup.in",
+        margin, pageH - margin - 10, { align: "center", width: pageW - margin * 2 }
+      );
+    }
+
+    doc.end();
+  });
+}
+
+export async function generateGstSummaryPdf(invoices: InvoiceData[]): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 40, size: "A4" });
     const chunks: Buffer[] = [];
     const writable = new Writable({
       write(chunk, _enc, cb) { chunks.push(chunk); cb(); }
@@ -29,132 +128,56 @@ export async function generateInvoicePdf(d: InvoiceData): Promise<Buffer> {
 
     const black = "#000000";
     const gray = "#666666";
-    const lightGray = "#999999";
-    const startX = 50;
-    const endX = doc.page.width - 50;
+    const lightGray = "#aaaaaa";
 
-    doc.fontSize(20).font("Helvetica-Bold").fillColor(black).text("Invoice", startX, doc.y);
-    doc.fontSize(10).fillColor(gray).text(d.orderRef, startX, doc.y + 22);
-    doc.fontSize(10).fillColor(gray).text(d.date, startX, doc.y + 36);
+    doc.fontSize(18).font("Helvetica-Bold").fillColor(black).text("GST Summary", 40, 40);
+    doc.fontSize(9).fillColor(gray).text(`Generated on ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`, 40, 64);
 
-    let y = doc.y + 20;
-    doc.fontSize(9).fillColor(lightGray).text("BILL TO", startX, y);
-    doc.fontSize(11).font("Helvetica-Bold").fillColor(black).text(d.customerName, startX, y + 14);
-    doc.font("Helvetica").fontSize(10).fillColor(gray).text(d.customerAddress + " " + d.customerPincode, startX, y + 28);
-    doc.text(d.customerPhone, startX, doc.y + 14);
-    if (d.customerEmail) doc.text(d.customerEmail, startX, doc.y + 14);
+    const totalBase = invoices.reduce((s, d) => s + (d.amount - d.gstAmount), 0);
+    const totalGst = invoices.reduce((s, d) => s + d.gstAmount, 0);
+    const totalAmount = invoices.reduce((s, d) => s + d.amount, 0);
 
-    y = doc.y + 10;
-    doc.fontSize(9).fillColor(lightGray).text("FROM", startX, y);
-    doc.fontSize(11).font("Helvetica-Bold").fillColor(black).text("Gray Cup Enterprises", startX, y + 14);
-    doc.font("Helvetica").fontSize(10).fillColor(gray).text("FF122, Rodeo Drive Mall, GT Road, TDI City, Kundli, Sonipat, Haryana 131030", startX, y + 28, { width: 260 });
-    doc.text("GSTIN: 06AAMCG4985H1Z4", startX, doc.y + 14);
-    doc.text("office@graycup.in", startX, doc.y + 14);
+    doc.fontSize(10).fillColor(gray).text("Summary", 40, 90);
+    doc.fontSize(9).font("Helvetica-Bold").fillColor(black).text("Particulars", 40, 108);
+    doc.fontSize(9).fillColor(black).text("Taxable Value (Base)", 40, 122).text("CGST @ 2.5%", 40, 134).text("SGST @ 2.5%", 40, 146);
+    doc.font("Helvetica-Bold").text("Total", 40, 160);
+    doc.font("Helvetica").fillColor(gray).text("Amount", 420, 108).text("Amount", 420, 122).text("Amount", 420, 134).text("Amount", 420, 146).text("Amount", 420, 160);
+    doc.font("Helvetica-Bold").fillColor(black)
+      .text(`₹${totalBase}`, 480, 108, { align: "right", width: 60 })
+      .text(`₹${(totalGst / 2).toFixed(0)}`, 480, 122, { align: "right", width: 60 })
+      .text(`₹${(totalGst / 2).toFixed(0)}`, 480, 134, { align: "right", width: 60 })
+      .text(`₹${totalAmount}`, 480, 160, { align: "right", width: 60 });
 
-    y = doc.y + 20;
-    doc.moveTo(startX, y).lineTo(endX, y).strokeColor(lightGray).lineWidth(0.5).stroke();
+    doc.moveTo(40, 178).lineTo(540, 178).strokeColor(lightGray).lineWidth(0.5).stroke();
 
-    y += 12;
-    doc.fontSize(9).fillColor(lightGray).text("ITEM", startX, y);
-    doc.text("PACK", startX + 240, y);
-    doc.text("QTY", startX + 340, y, { align: "center" });
-    doc.text("AMOUNT", endX, y, { align: "right", width: 80 });
+    const startY = 195;
+    doc.fontSize(7.5).fillColor(lightGray).text("Invoice #", 40, startY);
+    doc.text("Order Ref", 40 + 80, startY);
+    doc.text("Customer", 40 + 170, startY);
+    doc.text("Base Amount", 40 + 340, startY, { align: "right" });
+    doc.text("GST 5%", 40 + 420, startY, { align: "right" });
+    doc.text("Total", 540, startY, { align: "right", width: 60 });
 
-    y += 16;
-    doc.fontSize(11).font("Helvetica").fillColor(black).text(d.productName, startX, y);
-    doc.text(d.variantLabel, startX + 240, y);
-    doc.text(String(d.quantity), startX + 340, y, { align: "center" });
-    doc.text(`₹${d.amount}`, endX, y, { align: "right", width: 80 });
+    doc.moveTo(40, startY + 8).lineTo(540, startY + 8).strokeColor(lightGray).lineWidth(0.3).stroke();
 
-    y += 20;
-    doc.moveTo(startX, y).lineTo(endX, y).strokeColor(lightGray).lineWidth(0.5).stroke();
+    let y = startY + 16;
+    for (const d of invoices) {
+      doc.font("Helvetica").fillColor(black)
+        .text(d.invoiceNumber, 40, y)
+        .text(d.orderRef, 40 + 80, y)
+        .text(d.customerName, 40 + 170, y, { width: 160 })
+        .text(`₹${d.amount - d.gstAmount}`, 40 + 340, y, { align: "right" })
+        .text(`₹${d.gstAmount}`, 40 + 420, y, { align: "right" })
+        .text(`₹${d.amount}`, 540, y, { align: "right", width: 60 });
+      y += 14;
+    }
 
-    y += 12;
-    const totX = endX - 200;
-    doc.fontSize(10).fillColor(gray).text("Subtotal", totX, y, { width: 120 }).text(`₹${d.amount - d.gstAmount}`, endX, y, { align: "right", width: 80 });
-    doc.text("GST 5%", totX, y + 16, { width: 120 }).text(`₹${d.gstAmount}`, endX, y + 16, { align: "right", width: 80 });
-    doc.moveTo(totX, y + 30).lineTo(endX, y + 30).strokeColor(black).lineWidth(1).stroke();
-    doc.fontSize(12).font("Helvetica-Bold").fillColor(black).text("Total", totX, y + 38, { width: 120 }).text(`₹${d.amount}`, endX, y + 38, { align: "right", width: 80 });
-
-    doc.fontSize(9).fillColor(lightGray).text("Thank you for your order. This is a computer-generated invoice.", startX, doc.y + 30, { align: "center" });
+    doc.fontSize(8).fillColor(lightGray).text("Gray Cup Enterprises  ·  GSTIN: 06AAMCG4985H1Z4  ·  office@graycup.in", 40, doc.page.height - 40, { align: "center" });
 
     doc.end();
   });
 }
 
-export function generateInvoiceHtml(d: InvoiceData): string {
-  const base = d.amount - d.gstAmount;
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Invoice ${d.orderRef}</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; color: #000; background: #fff; padding: 40px; max-width: 600px; margin: 0 auto; font-size: 14px; }
-  .header { margin-bottom: 32px; }
-  .header h1 { font-size: 24px; font-weight: 900; }
-  .header p { color: #666; font-size: 12px; margin-top: 4px; }
-  .meta { display: flex; gap: 40px; margin-bottom: 32px; }
-  .meta-block { font-size: 12px; }
-  .meta-block strong { display: block; font-size: 14px; margin-bottom: 4px; }
-  .meta-block p { color: #666; line-height: 1.6; }
-  .divider { border-bottom: 1px solid #ddd; margin-bottom: 16px; }
-  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
-  thead th { font-size: 11px; color: #999; text-align: left; padding-bottom: 8px; font-weight: 400; }
-  tbody td { padding: 10px 0; border-bottom: 1px solid #eee; font-size: 14px; }
-  .totals { margin-left: auto; width: 200px; }
-  .totals-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; color: #666; }
-  .totals-row.total { font-weight: 900; font-size: 16px; color: #000; border-top: 1px solid #000; padding-top: 8px; margin-top: 4px; }
-  .footer { margin-top: 40px; font-size: 11px; color: #999; text-align: center; }
-</style>
-</head>
-<body>
-  <div class="header">
-    <h1>Invoice</h1>
-    <p>${d.orderRef} &nbsp;·&nbsp; ${d.date}</p>
-  </div>
-
-  <div class="meta">
-    <div class="meta-block">
-      <strong>Bill To</strong>
-      <p>${d.customerName}<br>${d.customerAddress}<br>${d.customerPincode}<br>${d.customerPhone}${d.customerEmail ? `<br>${d.customerEmail}` : ""}</p>
-    </div>
-    <div class="meta-block">
-      <strong>From</strong>
-      <p>Gray Cup Enterprises<br>FF122, Rodeo Drive Mall, GT Road, TDI City, Kundli, Sonipat, Haryana 131030<br>GSTIN: 06AAMCG4985H1Z4<br>office@graycup.in</p>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Item</th>
-        <th>Pack</th>
-        <th style="text-align:center">Qty</th>
-        <th style="text-align:right">Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>${d.productName}</td>
-        <td>${d.variantLabel}</td>
-        <td style="text-align:center">${d.quantity}</td>
-        <td style="text-align:right">₹${d.amount}</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="totals">
-    <div class="totals-row"><span>Subtotal</span><span>₹${base}</span></div>
-    <div class="totals-row"><span>GST 5%</span><span>₹${d.gstAmount}</span></div>
-    <div class="totals-row total"><span>Total</span><span>₹${d.amount}</span></div>
-  </div>
-
-  <div class="footer">Thank you for your order. This is a computer-generated invoice.</div>
-</body>
-</html>`;
+export function formatInvoiceNumber(n: number): string {
+  return `GCFINV-${String(n).padStart(4, "0")}`;
 }

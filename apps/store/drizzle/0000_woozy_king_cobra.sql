@@ -1,0 +1,22 @@
+CREATE TABLE "orders" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"order_ref" text NOT NULL,
+	"cashfree_order_id" text,
+	"product_id" text NOT NULL,
+	"product_name" text NOT NULL,
+	"variant_label" text NOT NULL,
+	"quantity" integer NOT NULL,
+	"amount" integer NOT NULL,
+	"gst_amount" integer NOT NULL,
+	"customer_name" text NOT NULL,
+	"customer_phone" text NOT NULL,
+	"customer_email" text,
+	"customer_address" text NOT NULL,
+	"customer_pincode" text NOT NULL,
+	"status" text DEFAULT 'PENDING' NOT NULL,
+	"delhivery_waybill" text,
+	"invoice_key" text,
+	"invoice_number" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "orders_order_ref_unique" UNIQUE("order_ref")
+);
