@@ -1,0 +1,17 @@
+{
+  "name": "@graycup/db",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "@neondatabase/serverless": "^1.1.0"
+  },
+  "peerDependencies": {
+    "drizzle-orm": "^0.45.2"
+  }
+}

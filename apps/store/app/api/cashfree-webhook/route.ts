@@ -5,7 +5,6 @@ import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { s3, BUCKET } from "@/lib/s3";
-import { createShipment, getPincodeDetails } from "@/lib/delhivery";
 import { generateInvoicePdf } from "@/lib/invoice";
 
 export async function POST(req: NextRequest) {
@@ -42,41 +41,15 @@ export async function POST(req: NextRequest) {
     }
     const order = rows[0];
 
-    if (order.status === "PAID" || order.delhiveryWaybill) {
+    if (order.status === "PAID") {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
     await db.update(orders).set({ status: "PAID" }).where(eq(orders.orderRef, orderRef));
 
-    const pincodeInfo = await getPincodeDetails(order.customerPincode).catch(() => null);
-
-    const delhivery = await createShipment({
-      orderRef,
-      customerName: order.customerName,
-      customerPhone: order.customerPhone,
-      address: order.customerAddress,
-      pincode: order.customerPincode,
-      city: pincodeInfo?.city || "",
-      state: pincodeInfo?.state || "",
-      productDesc: `${order.productName} ${order.variantLabel} ×${order.quantity}`,
-      totalAmount: order.amount,
-      weightKg: 0.5,
-    });
-
-    if (delhivery.success && delhivery.waybill) {
-      await db.update(orders)
-        .set({ delhiveryWaybill: delhivery.waybill, status: "DISPATCHED" })
-        .where(eq(orders.orderRef, orderRef));
-    } else {
-      console.error(`Delhivery failed for ${orderRef}:`, delhivery.error);
-      await db.update(orders)
-        .set({ status: "PAID_DISPATCH_PENDING" })
-        .where(eq(orders.orderRef, orderRef));
-    }
-
     const invoicePdf = await generateInvoicePdf({
       orderRef,
-      date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+      date: order.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
       customerName: order.customerName,
       customerPhone: order.customerPhone,
       customerEmail: order.customerEmail,
