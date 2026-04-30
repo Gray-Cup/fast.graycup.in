@@ -17,8 +17,8 @@ export default function Footer() {
           <div>
             <p className="font-bold text-xs uppercase tracking-widest text-blue-200 mb-3">Policies</p>
             <ul className="space-y-2 text-sm text-blue-100">
-              <li><a href="#" className="hover:text-white transition-colors">Shipping Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Refund & Returns</a></li>
+              <li><a href="/policies/refund-returns" className="hover:text-white transition-colors">Shipping Policy</a></li>
+              <li><a href="/policies/refund-returns" className="hover:text-white transition-colors">Refund & Returns</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
               <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
             </ul>
@@ -37,7 +37,7 @@ export default function Footer() {
 
         <div className="border-t border-blue-500 pt-6 text-sm text-blue-200 flex flex-col sm:flex-row justify-between gap-2">
           <span>© {new Date().getFullYear()} Gray Cup. All rights reserved.</span>
-          <span>GST-inclusive pricing · Shipped via Delhivery · Payments by Cashfree</span>
+          <span>Payments by Cashfree</span>
         </div>
       </div>
     </footer>
