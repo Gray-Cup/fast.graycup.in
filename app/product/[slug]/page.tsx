@@ -195,22 +195,8 @@ export default function ProductPage() {
                     : "bg-amber-500 hover:bg-amber-600 text-white"
                 }`}
               >
-                Buy Now →
+                Buy Now
               </button>
-
-              <p className="text-center text-sm text-gray-500">
-                🔒 Cashfree · 🚚 Delhivery · Ships in 24 hrs · GST inclusive
-              </p>
-            </div>
-
-            <div className="mt-8 grid grid-cols-2 gap-3">
-              {["✅ No additives", "✅ Airtight sealed", "✅ Estate grade", "✅ Easy returns"].map(
-                (f) => (
-                  <p key={f} className="text-sm text-gray-600 font-medium">
-                    {f}
-                  </p>
-                )
-              )}
             </div>
           </div>
         </div>

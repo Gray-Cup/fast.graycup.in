@@ -53,6 +53,18 @@ function SuccessContent() {
               <span className="font-bold text-gray-900">{qty}</span>
             </div>
           )}
+          {orderId && (
+            <div className="pt-3 border-t border-amber-200">
+              <a
+                href={`/api/invoice/${orderId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-xl transition-colors"
+              >
+                📄 Download Invoice
+              </a>
+            </div>
+          )}
         </div>
 
         <p className="text-sm text-gray-500 mb-8">

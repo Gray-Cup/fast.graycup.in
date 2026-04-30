@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql, generateOrderRef } from "@/lib/db";
+import { db, generateOrderRef } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
 import { getPincodeDetails } from "@/lib/delhivery";
 
 const GST_RATE = 0.05;
@@ -14,14 +15,12 @@ interface OrderLine {
 }
 
 interface OrderPayload {
-  // single-item (legacy)
   productId?: string;
   productName?: string;
   variantLabel?: string;
   weightGrams?: number;
   quantity?: number;
   amount: number;
-  // multi-item cart
   items?: OrderLine[];
   customer: {
     name: string;
@@ -42,7 +41,6 @@ export async function POST(req: NextRequest) {
       : `${body.productName} ${body.variantLabel} ×${body.quantity}`;
     const variantLabel = body.variantLabel ?? items?.map((i) => i.variantLabel).join(", ") ?? "";
     const quantity = body.quantity ?? items?.reduce((s, i) => s + i.quantity, 0) ?? 1;
-    const weightGrams = body.weightGrams ?? items?.reduce((s, i) => s + i.weightGrams * i.quantity, 0) ?? 0;
 
     if (!amount || !customer?.name || !customer?.phone || !customer?.address || !customer?.pincode) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -68,7 +66,6 @@ export async function POST(req: NextRequest) {
         ? "https://api.cashfree.com/pg"
         : "https://sandbox.cashfree.com/pg";
 
-    // Lookup city/state from pincode for Delhivery (non-blocking)
     const pincodeInfo = await getPincodeDetails(customer.pincode).catch(() => null);
 
     const cashfreePayload = {
@@ -110,29 +107,22 @@ export async function POST(req: NextRequest) {
 
     const cfData = await cfRes.json();
 
-    // Persist order to Neon DB
-    await sql`
-      INSERT INTO orders (
-        order_ref, cashfree_order_id, product_id, product_name, variant_label,
-        quantity, amount, gst_amount, customer_name, customer_phone,
-        customer_email, customer_address, customer_pincode, status
-      ) VALUES (
-        ${orderRef},
-        ${cfData.cf_order_id || orderRef},
-        ${productId},
-        ${productName},
-        ${variantLabel},
-        ${quantity},
-        ${amount},
-        ${gstAmt},
-        ${customer.name},
-        ${customer.phone},
-        ${customer.email || null},
-        ${customer.address + (pincodeInfo ? `, ${pincodeInfo.city}` : "")},
-        ${customer.pincode},
-        'PENDING'
-      )
-    `;
+    await db.insert(orders).values({
+      orderRef,
+      cashfreeOrderId: cfData.cf_order_id || orderRef,
+      productId,
+      productName,
+      variantLabel,
+      quantity,
+      amount,
+      gstAmount: gstAmt,
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      customerEmail: customer.email || null,
+      customerAddress: customer.address + (pincodeInfo ? `, ${pincodeInfo.city}` : ""),
+      customerPincode: customer.pincode,
+      status: "PENDING",
+    });
 
     return NextResponse.json({
       orderRef,

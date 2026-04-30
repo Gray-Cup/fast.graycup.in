@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/lib/cart";
-import { gstAmount } from "@/lib/products";
 
 interface FormData {
   name: string;
@@ -22,7 +21,6 @@ export default function CartCheckoutModal({ onClose }: { onClose: () => void }) 
   const overlayRef = useRef<HTMLDivElement>(null);
 
   const total = items.reduce((s, i) => s + i.product.variants[i.variantIndex].price * i.quantity, 0);
-  const gst = gstAmount(total);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -119,7 +117,7 @@ export default function CartCheckoutModal({ onClose }: { onClose: () => void }) 
             <span className="font-black text-gray-900">Total</span>
             <span className="font-black text-2xl text-gray-900">₹{total}</span>
           </div>
-          <p className="text-xs text-gray-400">Base ₹{total - gst} + GST 5% ₹{gst} = ₹{total} incl.</p>
+          <p className="text-xs text-gray-400">All prices inclusive of GST</p>
         </div>
 
         {/* Form */}

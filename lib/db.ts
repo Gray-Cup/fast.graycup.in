@@ -1,37 +1,33 @@
-import { neon, NeonQueryFunction } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+import { count, sql } from "drizzle-orm";
+import * as schema from "./db/schema";
 
-let _sql: NeonQueryFunction<false, false> | null = null;
+export { sql } from "drizzle-orm";
 
-function getDb(): NeonQueryFunction<false, false> {
-  if (!_sql) {
+let _db: ReturnType<typeof drizzle> | null = null;
+
+function getDb() {
+  if (!_db) {
     const url = process.env.DATABASE_URL;
     if (!url) {
       throw new Error(
         "DATABASE_URL is not set. Copy .env.local.example to .env.local and add your Neon connection string."
       );
     }
-    _sql = neon(url);
+    _db = drizzle(url, { schema });
   }
-  return _sql;
+  return _db;
 }
 
-export const sql: NeonQueryFunction<false, false> = new Proxy(
-  {} as NeonQueryFunction<false, false>,
-  {
-    apply(_target, _thisArg, args) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (getDb() as any)(...args);
-    },
-    get(_target, prop) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (getDb() as any)[prop];
-    },
-  }
-);
+export const db = new Proxy({} as ReturnType<typeof drizzle>, {
+  get(_target, prop) {
+    return (getDb() as any)[prop];
+  },
+});
 
 export async function setupSchema() {
-  const db = getDb();
-  await db`
+  const conn = getDb();
+  await conn.execute(sql`
     CREATE TABLE IF NOT EXISTS orders (
       id                SERIAL PRIMARY KEY,
       order_ref         TEXT UNIQUE NOT NULL,
@@ -49,14 +45,14 @@ export async function setupSchema() {
       customer_pincode  TEXT NOT NULL,
       status            TEXT NOT NULL DEFAULT 'PENDING',
       delhivery_waybill TEXT,
+      invoice_key       TEXT,
       created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
-  `;
+  `);
 }
 
 export async function generateOrderRef(): Promise<string> {
-  const db = getDb();
-  const result = await db`SELECT COUNT(*) as count FROM orders`;
-  const count = Number(result[0].count) + 1;
-  return `GCF-${String(count).padStart(4, "0")}`;
+  const result = await db.select({ count: count() }).from(schema.orders);
+  const countNum = Number(result[0].count) + 1;
+  return `GCF-${String(countNum).padStart(4, "0")}`;
 }

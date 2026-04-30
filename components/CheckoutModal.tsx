@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Product, gstAmount } from "@/lib/products";
+import { Product } from "@/lib/products";
 
 interface CheckoutModalProps {
   product: Product;
@@ -40,7 +40,6 @@ export default function CheckoutModal({
   const isCoffee = product.category === "Coffee";
   const variant = product.variants[selectedVariantIndex];
   const total = variant.price * quantity;
-  const gst = gstAmount(total);
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -144,9 +143,7 @@ export default function CheckoutModal({
               <p className="text-xs text-gray-400">{product.origin}</p>
             </div>
           </div>
-          <p className="text-xs text-gray-400">
-            Base ₹{total - gst} + GST 5% ₹{gst} = ₹{total} incl.
-          </p>
+          <p className="text-xs text-gray-400">All prices inclusive of GST</p>
         </div>
 
         {/* Form */}

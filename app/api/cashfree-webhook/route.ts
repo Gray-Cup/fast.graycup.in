@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
-import { sql } from "@/lib/db";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { db } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { s3, BUCKET } from "@/lib/s3";
 import { createShipment, getPincodeDetails } from "@/lib/delhivery";
+import { generateInvoiceHtml } from "@/lib/invoice";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +15,6 @@ export async function POST(req: NextRequest) {
     const timestamp = req.headers.get("x-webhook-timestamp");
     const secretKey = process.env.CASHFREE_SECRET_KEY;
 
-    // Verify Cashfree webhook signature
     if (signature && timestamp && secretKey) {
       const expectedSig = createHmac("sha256", secretKey)
         .update(timestamp + rawBody)
@@ -32,53 +36,68 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing order_id" }, { status: 400 });
     }
 
-    // Fetch the order from DB
-    const rows = await sql`SELECT * FROM orders WHERE order_ref = ${orderRef} LIMIT 1`;
-    if (rows.length === 0) {
+    const rows = await db.select().from(orders).where(eq(orders.orderRef, orderRef)).limit(1);
+    if (!rows.length) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
     const order = rows[0];
 
-    // Skip if already processed
-    if (order.status === "PAID" || order.delhivery_waybill) {
+    if (order.status === "PAID" || order.delhiveryWaybill) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    // Mark as PAID
-    await sql`UPDATE orders SET status = 'PAID' WHERE order_ref = ${orderRef}`;
+    await db.update(orders).set({ status: "PAID" }).where(eq(orders.orderRef, orderRef));
 
-    // Create Delhivery shipment
-    const pincodeInfo = await getPincodeDetails(order.customer_pincode).catch(() => null);
-    const weightKg = 0.5; // default; in a real app derive from product weight
+    const pincodeInfo = await getPincodeDetails(order.customerPincode).catch(() => null);
 
     const delhivery = await createShipment({
       orderRef,
-      customerName: order.customer_name,
-      customerPhone: order.customer_phone,
-      address: order.customer_address,
-      pincode: order.customer_pincode,
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      address: order.customerAddress,
+      pincode: order.customerPincode,
       city: pincodeInfo?.city || "",
       state: pincodeInfo?.state || "",
-      productDesc: `${order.product_name} ${order.variant_label} ×${order.quantity}`,
+      productDesc: `${order.productName} ${order.variantLabel} ×${order.quantity}`,
       totalAmount: order.amount,
-      weightKg,
+      weightKg: 0.5,
     });
 
     if (delhivery.success && delhivery.waybill) {
-      await sql`
-        UPDATE orders
-        SET delhivery_waybill = ${delhivery.waybill}, status = 'DISPATCHED'
-        WHERE order_ref = ${orderRef}
-      `;
+      await db.update(orders)
+        .set({ delhiveryWaybill: delhivery.waybill, status: "DISPATCHED" })
+        .where(eq(orders.orderRef, orderRef));
     } else {
       console.error(`Delhivery failed for ${orderRef}:`, delhivery.error);
-      // Still mark PAID; can retry dispatch manually
-      await sql`
-        UPDATE orders
-        SET status = 'PAID_DISPATCH_PENDING'
-        WHERE order_ref = ${orderRef}
-      `;
+      await db.update(orders)
+        .set({ status: "PAID_DISPATCH_PENDING" })
+        .where(eq(orders.orderRef, orderRef));
     }
+
+    const invoiceHtml = generateInvoiceHtml({
+      orderRef,
+      date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      customerEmail: order.customerEmail,
+      customerAddress: order.customerAddress,
+      customerPincode: order.customerPincode,
+      productName: order.productName,
+      variantLabel: order.variantLabel,
+      quantity: order.quantity,
+      amount: order.amount,
+      gstAmount: order.gstAmount,
+    });
+
+    const invoiceKey = `invoices/${orderRef}.html`;
+    await s3.send(new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: invoiceKey,
+      Body: Buffer.from(invoiceHtml, "utf-8"),
+      ContentType: "text/html",
+    }));
+
+    await db.update(orders).set({ invoiceKey }).where(eq(orders.orderRef, orderRef));
 
     return NextResponse.json({ ok: true });
   } catch (err) {

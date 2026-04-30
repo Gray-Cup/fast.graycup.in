@@ -25,7 +25,6 @@ export interface DelhiveryResponse {
   success: boolean;
 }
 
-/** Lookup city and state from a pincode via Delhivery */
 export async function getPincodeDetails(
   pincode: string
 ): Promise<{ city: string; state: string } | null> {
@@ -48,7 +47,6 @@ export async function getPincodeDetails(
   }
 }
 
-/** Create a prepaid shipment on Delhivery */
 export async function createShipment(
   shipment: DelhiveryShipment
 ): Promise<DelhiveryResponse> {
@@ -56,12 +54,7 @@ export async function createShipment(
     return { success: false, error: "DELHIVERY_API_TOKEN not configured" };
   }
 
-  const pickupLocation = process.env.DELHIVERY_PICKUP_NAME || "Primary";
-  const returnPhone = process.env.DELHIVERY_RETURN_PHONE || "";
-  const returnAddress = process.env.DELHIVERY_RETURN_ADDRESS || "";
-  const returnCity = process.env.DELHIVERY_RETURN_CITY || "";
-  const returnState = process.env.DELHIVERY_RETURN_STATE || "";
-  const returnPincode = process.env.DELHIVERY_RETURN_PINCODE || "";
+  const pickupLocation = process.env.DELHIVERY_PICKUP_NAME || "Gray Cup Pickup";
 
   const payload = {
     shipments: [
@@ -75,20 +68,20 @@ export async function createShipment(
         phone: shipment.customerPhone,
         order: shipment.orderRef,
         payment_mode: "Prepaid",
-        return_pin: returnPincode,
-        return_city: returnCity,
-        return_phone: returnPhone,
-        return_add: returnAddress,
-        return_name: "Gray Cup (Fast)",
-        return_email: process.env.DELHIVERY_RETURN_EMAIL || "",
-        return_state: returnState,
+        return_pin: "131030",
+        return_city: "Sonipat",
+        return_phone: "8527914317",
+        return_add: "FF122, Rodeo Drive Mall, GT Road, TDI City, Kundli, Sonipat, Haryana, 131030",
+        return_name: "Gray Cup Enterprises",
+        return_email: "arjun@graycup.in",
+        return_state: "Haryana",
         return_country: "India",
         products_desc: shipment.productDesc,
         cod_amount: "",
         order_date: new Date().toISOString().split("T")[0],
         total_amount: String(shipment.totalAmount),
-        seller_add: returnAddress,
-        seller_name: "Gray Cup (Fast)",
+        seller_add: "FF122, Rodeo Drive Mall, GT Road, TDI City, Kundli, Sonipat, Haryana, 131030",
+        seller_name: "Gray Cup Enterprises",
         seller_inv: shipment.orderRef,
         quantity: "1",
         shipment_width: "12",
@@ -128,7 +121,6 @@ export async function createShipment(
   }
 }
 
-/** Get tracking info for a waybill */
 export async function trackShipment(waybill: string) {
   if (!DELHIVERY_TOKEN) return null;
   try {

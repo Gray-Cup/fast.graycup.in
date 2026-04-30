@@ -3,13 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { Product, gstAmount } from "@/lib/products";
+import { Product } from "@/lib/products";
 import CheckoutModal from "@/components/CheckoutModal";
 import { useCart } from "@/lib/cart";
 
 export default function ProductCard({ product }: { product: Product }) {
   const v0 = product.variants[0];
-  const gst = gstAmount(v0.price);
   const isCoffee = product.category === "Coffee";
   const [showCheckout, setShowCheckout] = useState(false);
   const { addToCart } = useCart();
@@ -42,7 +41,7 @@ export default function ProductCard({ product }: { product: Product }) {
           <div className="mt-auto">
             <p className="text-xs text-gray-400 mb-0.5">From</p>
             <p className="text-xl font-black text-gray-900 mb-0.5">₹{v0.price}</p>
-            <p className="text-xs text-gray-400 mb-4">incl. GST ₹{gst}</p>
+            <p className="text-xs text-gray-400 mb-4">All prices inclusive of GST</p>
 
             <div className="flex gap-2">
               <button
