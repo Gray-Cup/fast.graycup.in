@@ -13,17 +13,19 @@ export async function POST(req: NextRequest) {
     const rows = await db.select().from(schema.orders).where(inArray(schema.orders.orderRef, orderRefs));
     if (!rows.length) return NextResponse.json({ error: "No orders found" }, { status: 404 });
 
+    const invoiceMap = new Map(rows.map(o => [o.orderRef, o]));
     const invoices = await Promise.all(
       rows.map(async (o) => {
         let invoiceNumber = o.invoiceNumber;
         if (!invoiceNumber) {
           invoiceNumber = await generateInvoiceRef();
           await db.update(schema.orders).set({ invoiceNumber }).where(eq(schema.orders.id, o.id));
+          invoiceMap.get(o.orderRef)!.invoiceNumber = invoiceNumber;
         }
         return {
           invoiceNumber,
           orderRef: o.orderRef,
-          date: (o.createdAt as unknown as Date).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+          date: new Date(o.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
           customerName: o.customerName,
           customerPhone: o.customerPhone,
           customerEmail: o.customerEmail,
@@ -31,9 +33,9 @@ export async function POST(req: NextRequest) {
           customerPincode: o.customerPincode,
           productName: o.productName,
           variantLabel: o.variantLabel,
-          quantity: o.quantity,
-          amount: o.amount,
-          gstAmount: o.gstAmount,
+          quantity: Number(o.quantity),
+          amount: Number(o.amount),
+          gstAmount: Number(o.gstAmount),
         };
       })
     );
@@ -45,10 +47,11 @@ export async function POST(req: NextRequest) {
     if (type !== "gst") {
       await Promise.all(
         rows.map(async (o) => {
+          const invNum = invoiceMap.get(o.orderRef)!.invoiceNumber ?? "—";
           const invoicePdf = await generateInvoicePdf({
-            invoiceNumber: o.invoiceNumber ?? "—",
+            invoiceNumber: invNum,
             orderRef: o.orderRef,
-            date: (o.createdAt as unknown as Date).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+            date: new Date(o.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
             customerName: o.customerName,
             customerPhone: o.customerPhone,
             customerEmail: o.customerEmail,
@@ -56,9 +59,9 @@ export async function POST(req: NextRequest) {
             customerPincode: o.customerPincode,
             productName: o.productName,
             variantLabel: o.variantLabel,
-            quantity: o.quantity,
-            amount: o.amount,
-            gstAmount: o.gstAmount,
+            quantity: Number(o.quantity),
+            amount: Number(o.amount),
+            gstAmount: Number(o.gstAmount),
           });
           const key = `invoices/${o.orderRef}.pdf`;
           await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: new Uint8Array(invoicePdf), ContentType: "application/pdf" }));

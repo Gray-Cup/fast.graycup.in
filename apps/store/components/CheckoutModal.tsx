@@ -226,7 +226,7 @@ export default function CheckoutModal({
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1.5">City</label>
               <input name="city" type="text" value={form.city} onChange={handleChange}
-                required placeholder="e.g. New Delhi"
+                required placeholder="e.g. Panchkula"
                 className={inputClass} autoComplete="address-level2" />
             </div>
 

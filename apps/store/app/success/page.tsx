@@ -14,13 +14,8 @@ function SuccessContent() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-16">
       <div className="max-w-md w-full text-center">
-        {/* Animated checkmark */}
-        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-bounce">
-          <span className="text-5xl">✅</span>
-        </div>
-
         <h1 className="text-4xl sm:text-5xl font-black text-gray-900 mb-4 leading-tight">
-          Order Confirmed!
+          Order Confirmed
         </h1>
         <p className="text-xl text-gray-600 mb-8 leading-relaxed">
           Thank you for your purchase. We&apos;ll pack it fresh and ship it
@@ -58,9 +53,9 @@ function SuccessContent() {
               <a
                 href={`/api/invoice/${orderId}`}
                 download={`Invoice-${orderId}.pdf`}
-                className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-xl transition-colors"
+                className="flex items-center justify-center w-full py-2.5 px-4 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-xl transition-colors"
               >
-                📄 Download Invoice
+                Download Invoice
               </a>
             </div>
           )}
@@ -75,7 +70,7 @@ function SuccessContent() {
           href="/"
           className="inline-block bg-amber-400 hover:bg-amber-500 text-gray-900 font-black text-lg px-8 py-4 rounded-2xl transition-all duration-200 hover:shadow-lg"
         >
-          Continue Shopping →
+          Continue Shopping
         </Link>
       </div>
     </div>
