@@ -8,6 +8,6 @@ export async function GET() {
     return NextResponse.json(rows);
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
+    return NextResponse.json([], { status: 500 });
   }
 }

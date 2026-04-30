@@ -21,8 +21,8 @@ export default function AdminHome() {
       .catch(() => setLoading(false));
   }, []);
 
-  const total = orders.length;
-  const revenue = orders.reduce((sum, o) => sum + o.amount, 0);
+  const total = orders?.length || 0;
+  const revenue = orders?.reduce((sum, o) => sum + o.amount, 0) || 0;
   const pending = orders.filter((o) => o.status === "PENDING" || o.status === "PAID").length;
   const dispatched = orders.filter((o) => o.status === "DISPATCHED" || o.status === "DELIVERED").length;
 
