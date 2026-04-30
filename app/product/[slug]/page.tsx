@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { getProductBySlug, products } from "@/lib/products";
+import { getProductBySlug, products, gstAmount, basePrice } from "@/lib/products";
 import CheckoutModal from "@/components/CheckoutModal";
 import ProductCard from "@/components/ProductCard";
 
@@ -19,14 +19,12 @@ export default function ProductPage() {
   if (!product) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4">
-        <p className="text-6xl">🥜</p>
+        <p className="text-6xl">{slug?.includes("coffee") ? "☕" : "🍵"}</p>
         <h1 className="text-3xl font-black text-gray-900">Product not found</h1>
-        <p className="text-gray-500">
-          This product doesn&apos;t exist or may have been removed.
-        </p>
+        <p className="text-gray-500">This product doesn&apos;t exist or may have been removed.</p>
         <Link
           href="/"
-          className="bg-amber-400 hover:bg-amber-500 text-gray-900 font-bold px-6 py-3 rounded-xl"
+          className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-6 py-3 rounded-xl"
         >
           ← Back to Shop
         </Link>
@@ -34,36 +32,46 @@ export default function ProductPage() {
     );
   }
 
+  const isCoffee = product.category === "Coffee";
   const variant = product.variants[selectedVariant];
   const total = variant.price * quantity;
-  const relatedProducts = products
+  const gst = gstAmount(total);
+  const base = basePrice(total);
+
+  const related = products
     .filter((p) => p.id !== product.id && p.category === product.category)
     .slice(0, 3);
 
   return (
     <>
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
+      <div
+        className={`max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 pb-32 lg:pb-14`}
+      >
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-500 mb-8">
-          <Link href="/" className="hover:text-amber-500 transition-colors">
+          <Link href="/" className="hover:text-amber-600 transition-colors">
             Home
           </Link>
           <span>/</span>
           <Link
-            href={`/#${product.category === "Nuts" ? "nuts" : "dried-fruits"}`}
-            className="hover:text-amber-500 transition-colors"
+            href={isCoffee ? "/#coffee" : "/#tea"}
+            className="hover:text-amber-600 transition-colors"
           >
             {product.category}
           </Link>
           <span>/</span>
-          <span className="text-gray-900 font-medium">{product.name}</span>
+          <span className="text-gray-900 font-medium truncate">{product.name}</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
-          {/* Product Image */}
-          <div className="relative w-full aspect-square bg-amber-50 rounded-3xl overflow-hidden shadow-sm">
+          {/* Image */}
+          <div
+            className={`relative w-full aspect-square rounded-3xl overflow-hidden shadow-sm ${
+              isCoffee ? "bg-stone-100" : "bg-amber-50"
+            }`}
+          >
             <Image
-              src={product.image}
+              src={product.image_url}
               alt={product.name}
               fill
               className="object-cover"
@@ -71,23 +79,50 @@ export default function ProductPage() {
               priority
             />
             {product.badge && (
-              <span className="absolute top-5 left-5 bg-amber-400 text-gray-900 text-sm font-bold px-4 py-1.5 rounded-full shadow">
+              <span
+                className={`absolute top-5 left-5 text-sm font-bold px-4 py-1.5 rounded-full shadow ${
+                  isCoffee
+                    ? "bg-stone-900 text-white"
+                    : "bg-amber-400 text-gray-900"
+                }`}
+              >
                 {product.badge}
               </span>
             )}
           </div>
 
-          {/* Product Details */}
+          {/* Details */}
           <div className="flex flex-col">
-            <p className="text-amber-500 font-bold text-sm uppercase tracking-widest mb-2">
-              {product.category}
+            <p
+              className={`font-bold text-xs uppercase tracking-widest mb-2 ${
+                isCoffee ? "text-stone-500" : "text-amber-600"
+              }`}
+            >
+              {product.category} · {product.origin}
             </p>
             <h1 className="text-4xl sm:text-5xl font-black text-gray-900 leading-tight mb-3">
               {product.name}
             </h1>
-            <p className="text-xl text-gray-500 mb-6 leading-relaxed">
+            <p className="text-xl text-gray-500 mb-5 leading-relaxed">
               {product.tagline}
             </p>
+
+            {/* Flavour notes */}
+            <div className="flex flex-wrap gap-2 mb-6">
+              {product.flavourNotes.map((note) => (
+                <span
+                  key={note}
+                  className={`text-sm px-3 py-1 rounded-full font-semibold ${
+                    isCoffee
+                      ? "bg-stone-100 text-stone-700"
+                      : "bg-amber-100 text-amber-800"
+                  }`}
+                >
+                  {note}
+                </span>
+              ))}
+            </div>
+
             <p className="text-base text-gray-600 leading-relaxed mb-8">
               {product.description}
             </p>
@@ -104,12 +139,18 @@ export default function ProductPage() {
                     onClick={() => setSelectedVariant(i)}
                     className={`px-5 py-3 rounded-xl font-bold text-sm border-2 transition-all duration-150 ${
                       selectedVariant === i
-                        ? "border-amber-400 bg-amber-50 text-gray-900 shadow-sm"
+                        ? isCoffee
+                          ? "border-stone-900 bg-stone-50 text-stone-900"
+                          : "border-amber-400 bg-amber-50 text-gray-900"
                         : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
                     }`}
                   >
                     {v.label}
-                    <span className="block text-xs font-semibold mt-0.5 text-amber-600">
+                    <span
+                      className={`block text-xs font-semibold mt-0.5 ${
+                        isCoffee ? "text-stone-600" : "text-amber-600"
+                      }`}
+                    >
                       ₹{v.price}
                     </span>
                   </button>
@@ -143,53 +184,56 @@ export default function ProductPage() {
 
             {/* Price & CTA */}
             <div className="border-t border-gray-100 pt-6">
-              <div className="flex items-baseline gap-2 mb-5">
-                <span className="text-5xl font-black text-gray-900">
-                  ₹{total}
-                </span>
-                {quantity > 1 && (
-                  <span className="text-base text-gray-500">
-                    (₹{variant.price} × {quantity})
-                  </span>
-                )}
+              <div className="mb-5">
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-5xl font-black text-gray-900">₹{total}</span>
+                  {quantity > 1 && (
+                    <span className="text-sm text-gray-500">
+                      (₹{variant.price} × {quantity})
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400">
+                  Base ₹{base} + GST 5% ₹{gst} = ₹{total} (incl.)
+                </p>
               </div>
 
               <button
                 onClick={() => setShowCheckout(true)}
-                className="w-full bg-amber-400 hover:bg-amber-500 text-gray-900 font-black text-xl py-5 rounded-2xl transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 mb-3"
+                className={`w-full font-black text-xl py-5 rounded-2xl transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 mb-3 ${
+                  isCoffee
+                    ? "bg-stone-900 hover:bg-stone-800 text-white"
+                    : "bg-amber-500 hover:bg-amber-600 text-white"
+                }`}
               >
                 Buy Now →
               </button>
 
               <p className="text-center text-sm text-gray-500">
-                🔒 Secure payment · 🚚 Ships in 24 hours
+                🔒 Cashfree · 🚚 Delhivery · Ships in 24 hrs · GST inclusive
               </p>
             </div>
 
-            {/* Features */}
             <div className="mt-8 grid grid-cols-2 gap-3">
-              {[
-                "✅ No preservatives",
-                "✅ Vacuum sealed",
-                "✅ Premium grade",
-                "✅ Easy returns",
-              ].map((f) => (
-                <p key={f} className="text-sm text-gray-600 font-medium">
-                  {f}
-                </p>
-              ))}
+              {["✅ No additives", "✅ Airtight sealed", "✅ Estate grade", "✅ Easy returns"].map(
+                (f) => (
+                  <p key={f} className="text-sm text-gray-600 font-medium">
+                    {f}
+                  </p>
+                )
+              )}
             </div>
           </div>
         </div>
 
-        {/* Related Products */}
-        {relatedProducts.length > 0 && (
+        {/* Related */}
+        {related.length > 0 && (
           <section className="mt-20">
             <h2 className="text-3xl font-black text-gray-900 mb-8">
-              You might also like
+              More {product.category}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {relatedProducts.map((p) => (
+              {related.map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>
@@ -197,17 +241,20 @@ export default function ProductPage() {
         )}
       </div>
 
-      {/* Sticky Buy Button (mobile) */}
+      {/* Sticky CTA (mobile) */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-2xl lg:hidden z-40">
         <button
           onClick={() => setShowCheckout(true)}
-          className="w-full bg-amber-400 hover:bg-amber-500 text-gray-900 font-black text-lg py-4 rounded-2xl transition-all"
+          className={`w-full font-black text-lg py-4 rounded-2xl transition-all ${
+            isCoffee
+              ? "bg-stone-900 hover:bg-stone-800 text-white"
+              : "bg-amber-500 hover:bg-amber-600 text-white"
+          }`}
         >
           Buy Now · ₹{total} →
         </button>
       </div>
 
-      {/* Checkout Modal */}
       {showCheckout && (
         <CheckoutModal
           product={product}

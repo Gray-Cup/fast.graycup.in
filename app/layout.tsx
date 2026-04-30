@@ -12,10 +12,10 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "NutriNest — Premium Dry Fruits",
+  title: "Gray Cup (Fast) — Estate Tea & Coffee",
   description:
-    "Shop premium quality dry fruits — almonds, pistachios, anjeer, walnuts & more. Fresh, hand-picked, delivered to your door.",
-  keywords: "dry fruits, almonds, pistachios, anjeer, walnuts, cashews online",
+    "Premium CTC tea from Assam, Nilgiri & Dooars. Single-origin Arabica & Robusta coffee from Chikmagalur & Wayanad. Estate direct, shipped fast via Delhivery.",
+  keywords: "CTC tea, Assam tea, Nilgiri tea, Arabica coffee, Robusta coffee, Chikmagalur, Wayanad, buy tea online India",
 };
 
 export default function RootLayout({
