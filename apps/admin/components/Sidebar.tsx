@@ -14,10 +14,6 @@ export default function Sidebar() {
 
   return (
     <aside className="w-56 bg-white border-r border-gray-200 flex flex-col min-h-screen">
-      <div className="px-4 py-5 border-b border-gray-200">
-        <Link href="/" className="text-lg font-black text-gray-900 hover:text-amber-600 transition-colors">Gray Cup</Link>
-        <p className="text-xs text-gray-400 mt-0.5">Admin Panel</p>
-      </div>
       <nav className="flex-1 px-3 py-4 space-y-1">
         {navItems.map((item) => {
           const active = pathname === item.href;
