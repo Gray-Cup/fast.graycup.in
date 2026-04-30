@@ -78,17 +78,6 @@ export default function ProductPage() {
               sizes="(max-width: 1024px) 100vw, 50vw"
               priority
             />
-            {product.badge && (
-              <span
-                className={`absolute top-5 left-5 text-sm font-bold px-4 py-1.5 rounded-full shadow ${
-                  isCoffee
-                    ? "bg-stone-900 text-white"
-                    : "bg-amber-400 text-gray-900"
-                }`}
-              >
-                {product.badge}
-              </span>
-            )}
           </div>
 
           {/* Details */}

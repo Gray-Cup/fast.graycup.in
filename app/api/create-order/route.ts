@@ -4,13 +4,25 @@ import { getPincodeDetails } from "@/lib/delhivery";
 
 const GST_RATE = 0.05;
 
-interface OrderPayload {
+interface OrderLine {
   productId: string;
   productName: string;
   variantLabel: string;
   weightGrams: number;
   quantity: number;
+  price: number;
+}
+
+interface OrderPayload {
+  // single-item (legacy)
+  productId?: string;
+  productName?: string;
+  variantLabel?: string;
+  weightGrams?: number;
+  quantity?: number;
   amount: number;
+  // multi-item cart
+  items?: OrderLine[];
   customer: {
     name: string;
     phone: string;
@@ -23,7 +35,14 @@ interface OrderPayload {
 export async function POST(req: NextRequest) {
   try {
     const body: OrderPayload = await req.json();
-    const { amount, customer, productId, productName, variantLabel, quantity, weightGrams } = body;
+    const { amount, customer, items } = body;
+    const productId = body.productId ?? items?.[0]?.productId ?? "";
+    const productName = items
+      ? items.map((i) => `${i.productName} ${i.variantLabel} ×${i.quantity}`).join(", ")
+      : `${body.productName} ${body.variantLabel} ×${body.quantity}`;
+    const variantLabel = body.variantLabel ?? items?.map((i) => i.variantLabel).join(", ") ?? "";
+    const quantity = body.quantity ?? items?.reduce((s, i) => s + i.quantity, 0) ?? 1;
+    const weightGrams = body.weightGrams ?? items?.reduce((s, i) => s + i.weightGrams * i.quantity, 0) ?? 0;
 
     if (!amount || !customer?.name || !customer?.phone || !customer?.address || !customer?.pincode) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });

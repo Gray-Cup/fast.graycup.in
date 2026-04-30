@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { CartProvider } from "@/lib/cart";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -29,9 +30,11 @@ export default function RootLayout({
         style={{ fontFamily: "var(--font-outfit), sans-serif" }}
         className="bg-white text-gray-900 min-h-screen flex flex-col"
       >
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <CartProvider>
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
+        </CartProvider>
       </body>
     </html>
   );
