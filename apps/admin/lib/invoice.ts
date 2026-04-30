@@ -182,6 +182,98 @@ export function formatInvoiceNumber(n: number): string {
   return `GCFINV-${String(n).padStart(4, "0")}`;
 }
 
+export interface ShippingLabelData {
+  orderRef: string;
+  waybill: string;
+  customerName: string;
+  customerPhone: string;
+  customerAddress: string;
+  customerPincode: string;
+  productDesc: string;
+  amount: number;
+}
+
+function drawShippingLabel(doc: typeof PDFDocument.prototype, d: ShippingLabelData, x: number, y: number, w: number, h: number) {
+  const black = "#000000";
+  const gray = "#555555";
+  const light = "#999999";
+  const pad = 14;
+
+  // Border
+  doc.rect(x, y, w, h).strokeColor("#cccccc").lineWidth(0.5).stroke();
+
+  // FROM block
+  const fromH = 44;
+  doc.rect(x, y, w, fromH).fillColor("#f5f5f5").fill();
+  doc.rect(x, y, w, fromH).strokeColor("#cccccc").lineWidth(0.5).stroke();
+  doc.fontSize(6).font("Helvetica").fillColor(light).text("FROM", x + pad, y + 7);
+  doc.fontSize(8).font("Helvetica-Bold").fillColor(black).text("Gray Cup Enterprises", x + pad, y + 16);
+  doc.fontSize(6.5).font("Helvetica").fillColor(gray).text("FF122 Rodeo Drive Mall, GT Road, Kundli, Sonipat, Haryana 131030", x + pad, y + 28, { width: w - pad * 2 });
+
+  // SHIP TO block
+  const shipToY = y + fromH + 8;
+  doc.fontSize(6).font("Helvetica").fillColor(light).text("SHIP TO", x + pad, shipToY);
+
+  const nameY = shipToY + 10;
+  doc.fontSize(14).font("Helvetica-Bold").fillColor(black).text(d.customerName.toUpperCase(), x + pad, nameY, { width: w - pad * 2 });
+
+  const afterNameY = Math.max(doc.y + 4, nameY + 22);
+  doc.fontSize(8).font("Helvetica").fillColor(gray).text(d.customerAddress, x + pad, afterNameY, { width: w - pad * 2 });
+
+  const pincodeY = Math.max(doc.y + 8, afterNameY + 26);
+  doc.fontSize(16).font("Helvetica-Bold").fillColor(black).text(d.customerPincode, x + pad, pincodeY);
+
+  const phoneY = doc.y + 6;
+  doc.fontSize(8.5).font("Helvetica").fillColor(gray).text(`Phone: ${d.customerPhone}`, x + pad, phoneY);
+
+  // Divider
+  const divY = Math.max(doc.y + 10, pincodeY + 40);
+  doc.moveTo(x + pad, divY).lineTo(x + w - pad, divY).strokeColor("#dddddd").lineWidth(0.4).stroke();
+
+  // Order info block
+  const infoY = divY + 8;
+  doc.fontSize(7).font("Helvetica-Bold").fillColor(black).text(`ORDER: ${d.orderRef}`, x + pad, infoY);
+  doc.fontSize(9).font("Helvetica-Bold").fillColor(black).text(`AWB: ${d.waybill}`, x + pad, infoY + 12);
+  doc.fontSize(7).font("Helvetica").fillColor(gray).text(d.productDesc, x + pad, infoY + 26, { width: w - pad * 2 });
+  doc.fontSize(7).fillColor(light).text(`₹${d.amount}  •  Surface  •  Prepaid`, x + pad, infoY + 38);
+}
+
+export async function generateShippingLabelPdf(labels: ShippingLabelData[]): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 0, size: "A4" });
+    const chunks: Buffer[] = [];
+    const writable = new Writable({
+      write(chunk, _enc, cb) { chunks.push(chunk); cb(); }
+    });
+    writable.on("finish", () => resolve(Buffer.concat(chunks)));
+    writable.on("error", reject);
+    doc.pipe(writable);
+
+    const pageW = doc.page.width;
+    const pageH = doc.page.height;
+    const margin = 20;
+    const gap = 10;
+    const cols = 2;
+    const rows = 2;
+    const labelW = (pageW - margin * 2 - gap * (cols - 1)) / cols;
+    const labelH = (pageH - margin * 2 - gap * (rows - 1)) / rows;
+
+    for (let i = 0; i < labels.length; i += cols * rows) {
+      if (i > 0) doc.addPage();
+      const batch = labels.slice(i, i + cols * rows);
+      for (let j = 0; j < batch.length; j++) {
+        const col = j % cols;
+        const row = Math.floor(j / cols);
+        const x = margin + col * (labelW + gap);
+        const y = margin + row * (labelH + gap);
+        drawShippingLabel(doc, batch[j], x, y, labelW, labelH);
+      }
+    }
+
+    doc.end();
+  });
+}
+
 export async function generateInvoicePdf(d: InvoiceData): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50 });

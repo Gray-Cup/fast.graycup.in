@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 type Order = {
   id: number;
@@ -22,13 +22,19 @@ type Order = {
   createdAt: string;
 };
 
+type Filter = "all" | "unfulfilled" | "dispatched" | "delivered";
+
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
   PAID: "bg-blue-100 text-blue-800",
   PAID_DISPATCH_PENDING: "bg-orange-100 text-orange-800",
   DISPATCHED: "bg-purple-100 text-purple-800",
   DELIVERED: "bg-green-100 text-green-800",
+  RETURNED: "bg-red-100 text-red-700",
+  CANCELLED: "bg-gray-200 text-gray-600",
 };
+
+// ─── Order Detail Modal ──────────────────────────────────────────────────────
 
 function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => void }) {
   return (
@@ -37,7 +43,6 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h2 className="text-lg font-black text-gray-900">Order Details</h2>
@@ -46,13 +51,10 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold transition-colors"
-          >
-            ✕
-          </button>
+          >✕</button>
         </div>
 
         <div className="px-6 py-5 flex flex-col gap-5">
-          {/* Status */}
           <div className="flex items-center gap-3">
             <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${STATUS_COLORS[order.status] || "bg-gray-100 text-gray-600"}`}>
               {order.status}
@@ -60,7 +62,6 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
             <span className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString("en-IN")}</span>
           </div>
 
-          {/* Customer Info */}
           <section>
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Customer</h3>
             <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2 text-sm">
@@ -81,7 +82,6 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
             </div>
           </section>
 
-          {/* Delivery Address */}
           <section>
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Delivery Address</h3>
             <div className="bg-gray-50 rounded-xl p-4 text-sm">
@@ -90,7 +90,6 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
             </div>
           </section>
 
-          {/* Order Items */}
           <section>
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Items</h3>
             <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-2 text-sm">
@@ -105,7 +104,6 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
             </div>
           </section>
 
-          {/* Shipping */}
           {order.delhiveryWaybill && (
             <section>
               <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Shipping</h3>
@@ -116,14 +114,13 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
             </section>
           )}
 
-          {/* Invoice */}
           <a
             href={`/api/invoice/${order.orderRef}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full py-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-xl transition-colors"
           >
-            📄 Download Invoice
+            Download Invoice
           </a>
         </div>
       </div>
@@ -131,20 +128,339 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
   );
 }
 
+// ─── Row Actions Dropdown ────────────────────────────────────────────────────
+
+function RowActions({
+  order, busy,
+  onView, onCreateWaybill, onSyncStatus, onCancel,
+}: {
+  order: Order; busy: boolean;
+  onView: () => void;
+  onCreateWaybill: () => void;
+  onSyncStatus: () => void;
+  onCancel: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const canCreateWaybill = ["PAID", "PAID_DISPATCH_PENDING"].includes(order.status);
+  const hasWaybill = !!order.delhiveryWaybill;
+  const isActive = ["DISPATCHED"].includes(order.status);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors"
+      >
+        Actions ▾
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-20 min-w-[190px] py-1">
+          <button
+            onClick={() => { onView(); setOpen(false); }}
+            className="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-700"
+          >
+            View Details
+          </button>
+
+          {canCreateWaybill && (
+            <button
+              onClick={() => { onCreateWaybill(); setOpen(false); }}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-blue-50 text-blue-700 disabled:opacity-40"
+            >
+              Create Waybill
+            </button>
+          )}
+
+          {hasWaybill && (
+            <button
+              onClick={() => { onSyncStatus(); setOpen(false); }}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-purple-50 text-purple-700 disabled:opacity-40"
+            >
+              Sync Tracking Status
+            </button>
+          )}
+
+          {isActive && hasWaybill && (
+            <button
+              onClick={() => { onCancel(); setOpen(false); }}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 disabled:opacity-40"
+            >
+              Cancel Shipment
+            </button>
+          )}
+
+          <div className="border-t border-gray-100 my-1" />
+
+          <a
+            href={`/api/invoice/${order.orderRef}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2 text-sm hover:bg-gray-50 text-gray-600"
+          >
+            Download Invoice
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+
+function Toast({ type, msg }: { type: "success" | "error"; msg: string }) {
+  return (
+    <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg text-sm font-semibold max-w-sm ${
+      type === "success" ? "bg-green-600 text-white" : "bg-red-600 text-white"
+    }`}>
+      {msg}
+    </div>
+  );
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
+
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "unfulfilled", label: "Unfulfilled" },
+  { key: "dispatched", label: "In Transit" },
+  { key: "delivered", label: "Delivered" },
+];
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  useEffect(() => {
+  const loadOrders = useCallback(() => {
+    setLoading(true);
     fetch("/api/orders")
       .then((r) => r.json())
       .then((data) => { setOrders(data); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 
+  useEffect(() => { loadOrders(); }, [loadOrders]);
+
+  const showToast = useCallback((type: "success" | "error", msg: string) => {
+    setToast({ type, msg });
+    setTimeout(() => setToast(null), 4000);
+  }, []);
+
+  const filteredOrders = orders.filter((o) => {
+    if (filter === "unfulfilled") return ["PAID", "PAID_DISPATCH_PENDING"].includes(o.status);
+    if (filter === "dispatched") return o.status === "DISPATCHED";
+    if (filter === "delivered") return o.status === "DELIVERED";
+    return true;
+  });
+
+  const unfulfilledCount = orders.filter((o) => ["PAID", "PAID_DISPATCH_PENDING"].includes(o.status)).length;
+  const allSelected = filteredOrders.length > 0 && filteredOrders.every((o) => selected.has(o.orderRef));
+  const someSelected = filteredOrders.some((o) => selected.has(o.orderRef));
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelected((prev) => { const n = new Set(prev); filteredOrders.forEach((o) => n.delete(o.orderRef)); return n; });
+    } else {
+      setSelected((prev) => { const n = new Set(prev); filteredOrders.forEach((o) => n.add(o.orderRef)); return n; });
+    }
+  };
+
+  const selectedRefs = [...selected];
+  const selectedUnfulfilled = selectedRefs.filter((ref) => {
+    const o = orders.find((x) => x.orderRef === ref);
+    return o && ["PAID", "PAID_DISPATCH_PENDING"].includes(o.status);
+  });
+  const selectedWithWaybill = selectedRefs.filter((ref) =>
+    orders.find((o) => o.orderRef === ref && o.delhiveryWaybill)
+  );
+
+  // ── Bulk actions ──
+
+  const bulkGenerateWaybills = async () => {
+    if (selectedUnfulfilled.length === 0) { showToast("error", "Select PAID orders first"); return; }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/orders/bulk-waybill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderRefs: selectedUnfulfilled }),
+      });
+      const data = await res.json();
+      showToast(data.success ? "success" : "error", data.message || data.error || "Done");
+      loadOrders();
+      setSelected(new Set());
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
+  const syncTracking = async (refs?: string[]) => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/orders/sync-tracking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderRefs: refs }),
+      });
+      const data = await res.json();
+      showToast("success", data.message || "Synced");
+      loadOrders();
+    } catch { showToast("error", "Sync failed"); }
+    setBusy(false);
+  };
+
+  const downloadLabels = async () => {
+    if (selectedWithWaybill.length === 0) { showToast("error", "Select orders with waybills first"); return; }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/shipping-labels", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderRefs: selectedWithWaybill }),
+      });
+      if (!res.ok) { showToast("error", "Failed to generate labels"); setBusy(false); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "shipping-labels.pdf";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { showToast("error", "Download failed"); }
+    setBusy(false);
+  };
+
+  // ── Per-row actions ──
+
+  const createWaybill = async (orderRef: string) => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/orders/${orderRef}/generate-waybill`, { method: "POST" });
+      const data = await res.json();
+      if (data.waybill) {
+        showToast("success", `Waybill ${data.waybill} created`);
+        loadOrders();
+      } else {
+        showToast("error", data.error || "Failed to create waybill");
+      }
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
+  const cancelShipment = async (orderRef: string) => {
+    if (!confirm(`Cancel shipment for ${orderRef}?`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/orders/${orderRef}/cancel`, { method: "POST" });
+      const data = await res.json();
+      showToast(data.success ? "success" : "error", data.message || data.error || "Done");
+      loadOrders();
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
   return (
-    <div>
+    <div className="flex flex-col gap-4">
+      {toast && <Toast type={toast.type} msg={toast.msg} />}
+
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Filter tabs */}
+        <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => { setFilter(f.key); setSelected(new Set()); }}
+              className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors flex items-center gap-1.5 ${
+                filter === f.key ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {f.label}
+              {f.key === "unfulfilled" && unfulfilledCount > 0 && (
+                <span className="bg-orange-200 text-orange-800 text-xs px-1.5 py-0.5 rounded-full leading-none">
+                  {unfulfilledCount}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Bulk action buttons — show when something is selected */}
+        {selected.size > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-gray-400">{selected.size} selected</span>
+
+            {selectedUnfulfilled.length > 0 && (
+              <button
+                onClick={bulkGenerateWaybills}
+                disabled={busy}
+                className="px-3 py-1.5 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+              >
+                Generate Waybills ({selectedUnfulfilled.length})
+              </button>
+            )}
+
+            {selectedWithWaybill.length > 0 && (
+              <button
+                onClick={downloadLabels}
+                disabled={busy}
+                className="px-3 py-1.5 text-sm font-semibold bg-stone-800 hover:bg-stone-900 text-white rounded-lg disabled:opacity-50 transition-colors"
+              >
+                Shipping Labels ({selectedWithWaybill.length})
+              </button>
+            )}
+
+            {selectedWithWaybill.length > 0 && (
+              <button
+                onClick={() => syncTracking(selectedWithWaybill)}
+                disabled={busy}
+                className="px-3 py-1.5 text-sm font-semibold bg-purple-600 hover:bg-purple-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+              >
+                Sync Tracking
+              </button>
+            )}
+
+            <button
+              onClick={() => setSelected(new Set())}
+              className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 rounded-lg transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        )}
+
+        {/* Sync all (when nothing selected) */}
+        {selected.size === 0 && (
+          <button
+            onClick={() => syncTracking()}
+            disabled={busy}
+            className="ml-auto px-3 py-1.5 text-sm font-semibold text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg disabled:opacity-50 transition-colors"
+          >
+            {busy ? "Syncing…" : "Sync All Tracking"}
+          </button>
+        )}
+      </div>
+
+      {/* Table */}
       {loading ? (
         <div className="flex justify-center py-20">
           <div className="w-8 h-8 border-3 border-amber-400 border-t-transparent rounded-full animate-spin" />
@@ -154,6 +470,15 @@ export default function OrdersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200 text-left">
+                <th className="px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => { if (el) el.indeterminate = !allSelected && someSelected; }}
+                    onChange={toggleSelectAll}
+                    className="rounded cursor-pointer"
+                  />
+                </th>
                 <th className="px-4 py-3 font-semibold text-gray-600">Order Ref</th>
                 <th className="px-4 py-3 font-semibold text-gray-600">Customer</th>
                 <th className="px-4 py-3 font-semibold text-gray-600">Product</th>
@@ -165,8 +490,27 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((o) => (
-                <tr key={o.id} className="border-b border-gray-100 hover:bg-gray-50">
+              {filteredOrders.map((o) => (
+                <tr
+                  key={o.id}
+                  className={`border-b border-gray-100 hover:bg-gray-50/70 transition-colors ${
+                    selected.has(o.orderRef) ? "bg-blue-50/40" : ""
+                  }`}
+                >
+                  <td className="px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(o.orderRef)}
+                      onChange={() => {
+                        setSelected((prev) => {
+                          const n = new Set(prev);
+                          n.has(o.orderRef) ? n.delete(o.orderRef) : n.add(o.orderRef);
+                          return n;
+                        });
+                      }}
+                      className="rounded cursor-pointer"
+                    />
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs font-bold">{o.orderRef}</td>
                   <td className="px-4 py-3">
                     <div className="font-medium">{o.customerName}</div>
@@ -182,20 +526,26 @@ export default function OrdersPage() {
                       {o.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs">{o.delhiveryWaybill || "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-400">{new Date(o.createdAt).toLocaleDateString("en-IN")}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-gray-500">{o.delhiveryWaybill || "—"}</td>
+                  <td className="px-4 py-3 text-xs text-gray-400">
+                    {new Date(o.createdAt).toLocaleDateString("en-IN")}
+                  </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => setSelectedOrder(o)}
-                      className="text-xs font-semibold text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                      View
-                    </button>
+                    <RowActions
+                      order={o}
+                      busy={busy}
+                      onView={() => setSelectedOrder(o)}
+                      onCreateWaybill={() => createWaybill(o.orderRef)}
+                      onSyncStatus={() => syncTracking([o.orderRef])}
+                      onCancel={() => cancelShipment(o.orderRef)}
+                    />
                   </td>
                 </tr>
               ))}
-              {orders.length === 0 && (
-                <tr><td colSpan={8} className="text-center py-12 text-gray-400">No orders found</td></tr>
+              {filteredOrders.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="text-center py-12 text-gray-400">No orders found</td>
+                </tr>
               )}
             </tbody>
           </table>

@@ -133,3 +133,61 @@ export async function trackShipment(waybill: string) {
     return null;
   }
 }
+
+export async function trackMultipleShipments(waybills: string[]): Promise<Record<string, { status: string; statusType: string; location: string; updatedAt: string }>> {
+  if (!DELHIVERY_TOKEN || waybills.length === 0) return {};
+  try {
+    const res = await fetch(
+      `${BASE_URL}/api/v1/packages/json/?waybill=${waybills.join(",")}`,
+      { headers: { Authorization: `Token ${DELHIVERY_TOKEN}` } }
+    );
+    if (!res.ok) return {};
+    const data = await res.json();
+    const result: Record<string, { status: string; statusType: string; location: string; updatedAt: string }> = {};
+    for (const item of data?.ShipmentData || []) {
+      const s = item?.Shipment;
+      if (s?.Waybill) {
+        result[s.Waybill] = {
+          status: s.Status || "",
+          statusType: s.StatusType || s.StatusCode || "",
+          location: s.StatusLocation || "",
+          updatedAt: s.StatusDateTime || "",
+        };
+      }
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+// Maps Delhivery StatusType to our internal order status
+export function mapDelhiveryStatus(statusType: string): string | null {
+  switch (statusType?.toUpperCase()) {
+    case "DL": return "DELIVERED";
+    case "RT":
+    case "DTO": return "RETURNED";
+    default: return null;
+  }
+}
+
+export async function cancelShipment(waybill: string): Promise<{ success: boolean; error?: string }> {
+  if (!DELHIVERY_TOKEN) return { success: false, error: "DELHIVERY_API_TOKEN not configured" };
+  try {
+    const res = await fetch(`${BASE_URL}/api/p/edit`, {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${DELHIVERY_TOKEN}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: `format=json&data=${encodeURIComponent(JSON.stringify({ waybill, cancellation: "true" }))}`,
+    });
+    const data = await res.json();
+    if (data?.status === "Success" || data?.rmk?.toLowerCase().includes("cancel")) {
+      return { success: true };
+    }
+    return { success: false, error: data?.rmk || JSON.stringify(data) };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
