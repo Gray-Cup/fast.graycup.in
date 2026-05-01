@@ -132,12 +132,13 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
 function RowActions({
   order, busy,
-  onView, onCreateWaybill, onSyncStatus, onCancel, onDelete,
+  onView, onCreateWaybill, onSyncStatus, onVerifyPayment, onCancel, onDelete,
 }: {
   order: Order; busy: boolean;
   onView: () => void;
   onCreateWaybill: () => void;
   onSyncStatus: () => void;
+  onVerifyPayment: () => void;
   onCancel: () => void;
   onDelete: () => void;
 }) {
@@ -192,6 +193,16 @@ function RowActions({
               className="w-full text-left px-4 py-2 text-sm hover:bg-purple-50 text-purple-700 disabled:opacity-40"
             >
               Sync Tracking Status
+            </button>
+          )}
+
+          {order.status === "PENDING" && (
+            <button
+              onClick={() => { onVerifyPayment(); setOpen(false); }}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-green-50 text-green-700 disabled:opacity-40"
+            >
+              Verify Payment
             </button>
           )}
 
@@ -389,6 +400,21 @@ export default function OrdersPage() {
     setBusy(false);
   };
 
+  const verifyPayment = async (orderRef: string) => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/orders/${orderRef}/verify-payment`, { method: "POST" });
+      const data = await res.json();
+      if (data.verified) {
+        showToast("success", data.transactionId ? `Payment verified. Transaction ID: ${data.transactionId}` : "Payment verified successfully");
+        loadOrders();
+      } else {
+        showToast("error", data.message || "Payment verification failed");
+      }
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
   const deleteOrder = async (orderRef: string) => {
     if (!confirm(`Permanently delete order ${orderRef} and its invoice? This cannot be undone.`)) return;
     setBusy(true);
@@ -564,6 +590,7 @@ export default function OrdersPage() {
                       onView={() => setSelectedOrder(o)}
                       onCreateWaybill={() => createWaybill(o.orderRef)}
                       onSyncStatus={() => syncTracking([o.orderRef])}
+                      onVerifyPayment={() => verifyPayment(o.orderRef)}
                       onCancel={() => cancelShipment(o.orderRef)}
                       onDelete={() => deleteOrder(o.orderRef)}
                     />
