@@ -17,6 +17,12 @@ export const metadata: Metadata = {
   description:
     "Premium CTC tea from Assam, Nilgiri & Dooars. Single-origin Arabica & Robusta coffee from Chikmagalur & Wayanad. Estate direct, shipped fast via Delhivery.",
   keywords: "CTC tea, Assam tea, Nilgiri tea, Arabica coffee, Robusta coffee, Chikmagalur, Wayanad, buy tea online India",
+  icons: {
+    icon: "/favicon.png",
+  },
+  openGraph: {
+    images: [{ url: "/og.png" }],
+  },
 };
 
 export default function RootLayout({
