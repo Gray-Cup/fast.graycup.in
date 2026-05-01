@@ -47,26 +47,10 @@ export default function ProductPage() {
       <div
         className={`max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 pb-32 lg:pb-14`}
       >
-        {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-8">
-          <Link href="/" className="hover:text-amber-600 transition-colors">
-            Home
-          </Link>
-          <span>/</span>
-          <Link
-            href={isCoffee ? "/#coffee" : "/#tea"}
-            className="hover:text-amber-600 transition-colors"
-          >
-            {product.category}
-          </Link>
-          <span>/</span>
-          <span className="text-gray-900 font-medium truncate">{product.name}</span>
-        </nav>
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
           {/* Image */}
           <div
-            className={`relative w-full aspect-square rounded-3xl overflow-hidden shadow-sm ${
+            className={`relative w-full aspect-square sm:aspect-square max-h-64 sm:max-h-none rounded-3xl overflow-hidden shadow-sm ${
               isCoffee ? "bg-stone-100" : "bg-amber-50"
             }`}
           >
@@ -82,35 +66,12 @@ export default function ProductPage() {
 
           {/* Details */}
           <div className="flex flex-col">
-            <p
-              className={`font-bold text-xs uppercase tracking-widest mb-2 ${
-                isCoffee ? "text-stone-500" : "text-amber-600"
-              }`}
-            >
-              {product.category} · {product.origin}
-            </p>
             <h1 className="text-4xl sm:text-5xl font-black text-gray-900 leading-tight mb-3">
               {product.name}
             </h1>
             <p className="text-xl text-gray-500 mb-5 leading-relaxed">
               {product.tagline}
             </p>
-
-            {/* Flavour notes */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              {product.flavourNotes.map((note) => (
-                <span
-                  key={note}
-                  className={`text-sm px-3 py-1 rounded-full font-semibold ${
-                    isCoffee
-                      ? "bg-stone-100 text-stone-700"
-                      : "bg-amber-100 text-amber-800"
-                  }`}
-                >
-                  {note}
-                </span>
-              ))}
-            </div>
 
             <p className="text-base text-gray-600 leading-relaxed mb-8">
               {product.description}
