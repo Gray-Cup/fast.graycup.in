@@ -54,7 +54,7 @@ export const products: Product[] = [
     name: "CTC + Orthodox Blend",
     tagline: "Early Access 500gm Pack",
     description:
-      "500gm of our signature CTC + Orthodox blend, Grade includes BOPSM, BP, OF, DJ and GFOP from Dooars and Assam with no Artificial Additives.",
+      "500gm of Assam & Dooars CTC + Orthodox blend, Grade includes BOPSM, BP, OF, DJ and GFOP from Dooars and Assam with no Artificial Additives.",
     category: "CTC Tea",
     image_url:
       "500gm.png",
