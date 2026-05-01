@@ -12,7 +12,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-gray-100 text-gray-900 antialiased">
         <nav className="print:hidden fixed top-0 left-0 right-0 z-30 h-12 bg-white border-b border-gray-200 px-6 flex items-center justify-between">
           <span className="text-sm font-bold text-gray-800">Gray Cup Fast</span>
-          <a href="/" target="_blank" className="text-xs text-gray-400 hover:text-gray-600">View Store →</a>
+          <div className="flex items-center gap-4">
+            <a href="/" target="_blank" className="text-xs text-gray-400 hover:text-gray-600">View Store →</a>
+            <form action="/api/auth/logout" method="POST">
+              <button type="submit" className="text-xs text-gray-400 hover:text-red-500 transition-colors cursor-pointer">Sign out</button>
+            </form>
+          </div>
         </nav>
         <div className="flex pt-12 h-screen">
           <Sidebar />
