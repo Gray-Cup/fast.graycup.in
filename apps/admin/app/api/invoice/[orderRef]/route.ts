@@ -1,56 +1,52 @@
+import React from "react";
 import { NextRequest, NextResponse } from "next/server";
-import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { renderToBuffer } from "@react-pdf/renderer";
 import { db, schema } from "@graycup/db";
 import { eq } from "drizzle-orm";
-import { generateInvoicePdf } from "@/lib/invoice";
-import { s3, BUCKET } from "@/lib/s3";
+import { InvoicePdf } from "@/lib/pdf/InvoicePdf";
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ orderRef: string }> }
 ) {
   const { orderRef } = await params;
 
-  const rows = await db.select().from(schema.orders).where(eq(schema.orders.orderRef, orderRef)).limit(1);
-  if (!rows.length) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+  const rows = await db
+    .select()
+    .from(schema.orders)
+    .where(eq(schema.orders.orderRef, orderRef))
+    .limit(1);
 
-  const order = rows[0];
-
-  if (order.invoiceKey) {
-    try {
-      const s3Res = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: order.invoiceKey }));
-      const body = await s3Res.Body!.transformToByteArray();
-      const buffer = new ArrayBuffer(body.byteLength);
-      new Uint8Array(buffer).set(body);
-      return new Response(buffer, {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `inline; filename="Invoice-${orderRef}.pdf"`,
-        },
-      });
-    } catch {}
+  if (!rows.length) {
+    return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  const pdf = await generateInvoicePdf({
-    invoiceNumber: order.invoiceNumber ?? "—",
-    orderRef: order.orderRef,
-    date: order.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
-    customerName: order.customerName,
-    customerPhone: order.customerPhone,
-    customerEmail: order.customerEmail,
-    customerAddress: order.customerAddress,
-    customerPincode: order.customerPincode,
-    productName: order.productName,
-    variantLabel: order.variantLabel,
-    quantity: order.quantity,
-    amount: order.amount,
-    gstAmount: order.gstAmount,
-  });
+  const o = rows[0];
+
+  const pdf = await renderToBuffer(
+    React.createElement(InvoicePdf, {
+      data: {
+        invoiceNumber: o.invoiceNumber ?? "—",
+        orderRef: o.orderRef,
+        date: o.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+        customerName: o.customerName,
+        customerPhone: o.customerPhone,
+        customerEmail: o.customerEmail,
+        customerAddress: o.customerAddress,
+        customerPincode: o.customerPincode,
+        productName: o.productName,
+        variantLabel: o.variantLabel,
+        quantity: o.quantity,
+        amount: o.amount,
+        gstAmount: o.gstAmount,
+      },
+    }) as React.ReactElement<any>
+  );
 
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="Invoice-${orderRef}.pdf"`,
+      "Content-Disposition": `attachment; filename="Invoice-${orderRef}.pdf"`,
     },
   });
 }

@@ -1,7 +1,7 @@
 import { db, schema } from "@graycup/db";
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import PrintButton from "./PrintButton";
+import DownloadButton from "./PrintButton";
 
 export default async function InvoicePage({
   params,
@@ -30,22 +30,15 @@ export default async function InvoicePage({
 
   return (
     <>
-      <style>{`
-        @media print {
-          @page { size: A4; margin: 1.2cm; }
-          body { background: white !important; }
-        }
-      `}</style>
-
-      {/* Toolbar — hidden when printing */}
-      <div className="print:hidden mb-6 flex items-center justify-between">
+      {/* Toolbar */}
+      <div className="mb-6 flex items-center justify-between">
         <a
           href="/orders"
           className="text-sm text-gray-500 hover:text-gray-800 transition-colors"
         >
           ← Back to Orders
         </a>
-        <PrintButton />
+        <DownloadButton orderRef={orderRef} />
       </div>
 
       {/* Invoice */}
