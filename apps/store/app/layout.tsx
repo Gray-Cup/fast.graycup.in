@@ -13,16 +13,10 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Gray Cup (Fast) — Estate Tea & Coffee",
-  description:
-    "Premium CTC tea from Assam, Nilgiri & Dooars. Single-origin Arabica & Robusta coffee from Chikmagalur & Wayanad. Estate direct, shipped fast via Delhivery.",
-  keywords: "CTC tea, Assam tea, Nilgiri tea, Arabica coffee, Robusta coffee, Chikmagalur, Wayanad, buy tea online India",
-  icons: {
-    icon: "/favicon.png",
-  },
-  openGraph: {
-    images: [{ url: "/og.png" }],
-  },
+  title: "Gray Cup Fast",
+  description: "CTC tea from Assam. Shipped fast across India.",
+  icons: { icon: "/favicon.png" },
+  openGraph: { images: [{ url: "/og.png" }] },
 };
 
 export default function RootLayout({
