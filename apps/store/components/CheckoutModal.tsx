@@ -198,7 +198,7 @@ export default function CheckoutModal({
 
           {/* Form */}
           {step === "form" && (
-            <form onSubmit={handleSubmit} className="px-6 pb-8 pt-2 flex flex-col gap-4">
+            <form id="checkout-form" onSubmit={handleSubmit} className="px-6 pt-2 pb-4 flex flex-col gap-4">
               {/* Row 1: Name + Phone */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -228,7 +228,7 @@ export default function CheckoutModal({
                 <label className="block text-sm font-bold text-gray-700 mb-1.5">Delivery Address</label>
                 <textarea name="address" value={form.address} onChange={handleChange}
                   required rows={2} placeholder="House no., street, area"
-                  className={`${inputClass} resize-none`} autoComplete="street-address" />
+                  className={`${inputClass} resize-none overflow-y-auto`} autoComplete="street-address" />
               </div>
 
               {/* Row 2: City + State */}
@@ -257,14 +257,6 @@ export default function CheckoutModal({
                   required pattern="[0-9]{6}" placeholder="6-digit pincode"
                   className={inputClass} inputMode="numeric" maxLength={6} />
               </div>
-
-              <button type="submit" className={btnClass}>
-                Pay ₹{total} Securely →
-              </button>
-
-              <p className="text-center text-xs text-gray-400">
-                Secured by Cashfree · Shipped via Delhivery
-              </p>
             </form>
           )}
 
@@ -294,6 +286,18 @@ export default function CheckoutModal({
             </div>
           )}
         </div>
+
+        {/* Sticky footer — only shown on form step */}
+        {step === "form" && (
+          <div className="shrink-0 px-6 py-4 border-t border-gray-100 bg-white">
+            <button type="submit" form="checkout-form" className={btnClass}>
+              Pay ₹{total} Securely
+            </button>
+            <p className="text-center text-xs text-gray-400 mt-2">
+              Secured by Cashfree · Shipped via Delhivery
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
