@@ -82,7 +82,9 @@ export default function CheckoutModal({
   const overlayRef = useRef<HTMLDivElement>(null);
   const isCoffee = product.category === "Coffee";
   const variant = product.variants[selectedVariantIndex];
-  const total = variant.price * quantity;
+  const subtotal = variant.price * quantity;
+  const deliveryCharge = variant.deliveryCharge ?? 0;
+  const total = subtotal + deliveryCharge;
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -178,18 +180,22 @@ export default function CheckoutModal({
         </div>
 
         {/* Order summary */}
-        <div className="mx-6 mt-4 mb-2 bg-stone-50 rounded-2xl p-4">
-          <div className="flex items-center justify-between mb-1">
-            <div>
-              <p className="text-sm text-gray-600">Order Total</p>
-              <p className="text-3xl font-black text-gray-900">₹{total}</p>
-            </div>
-            <div className="text-right text-sm text-gray-500">
-              <p>{variant.label} · Qty {quantity}</p>
-              <p className="text-xs text-gray-400">{product.origin}</p>
-            </div>
+        <div className="mx-6 mt-4 mb-2 bg-stone-50 rounded-2xl p-4 flex flex-col gap-1.5">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-600">{product.name} {variant.label} ×{quantity}</span>
+            <span className="font-bold text-gray-900">₹{subtotal}</span>
           </div>
-          <p className="text-xs text-gray-400">All prices inclusive of GST</p>
+          {deliveryCharge > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Delivery</span>
+              <span className="text-gray-700">₹{deliveryCharge}</span>
+            </div>
+          )}
+          <div className="border-t border-gray-200 mt-1 pt-2 flex justify-between">
+            <span className="font-black text-gray-900">Total</span>
+            <span className="font-black text-2xl text-gray-900">₹{total}</span>
+          </div>
+          <p className="text-xs text-gray-400">Product price inclusive of GST</p>
         </div>
 
         {/* Form */}

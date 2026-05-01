@@ -61,7 +61,9 @@ export default function CartCheckoutModal({ onClose }: { onClose: () => void }) 
   const [form, setForm] = useState<FormData>({ name: "", phone: "", address: "", city: "", state: "", pincode: "", email: "" });
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  const total = items.reduce((s, i) => s + i.product.variants[i.variantIndex].price * i.quantity, 0);
+  const subtotal = items.reduce((s, i) => s + i.product.variants[i.variantIndex].price * i.quantity, 0);
+  const totalDelivery = items.reduce((s, i) => s + (i.product.variants[i.variantIndex].deliveryCharge ?? 0) * i.quantity, 0);
+  const total = subtotal + totalDelivery;
 
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -161,11 +163,17 @@ export default function CartCheckoutModal({ onClose }: { onClose: () => void }) 
               </div>
             );
           })}
+          {totalDelivery > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Delivery</span>
+              <span className="text-gray-700">₹{totalDelivery}</span>
+            </div>
+          )}
           <div className="border-t border-gray-200 mt-1 pt-2 flex justify-between">
             <span className="font-black text-gray-900">Total</span>
             <span className="font-black text-2xl text-gray-900">₹{total}</span>
           </div>
-          <p className="text-xs text-gray-400">All prices inclusive of GST</p>
+          <p className="text-xs text-gray-400">Product prices inclusive of GST</p>
         </div>
 
         {/* Form */}
