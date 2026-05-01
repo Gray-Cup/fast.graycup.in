@@ -44,7 +44,7 @@ export const products: Product[] = [
       "A 150g introductory pack of our house CTC blend. Grade includes BOPSM, BP, OF, DJ and GFOP from Dooars and Assam with no Artificial Additives.",
     category: "CTC Tea",
     image_url:
-      "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&h=600&fit=crop&auto=format",
+      "samples.webp",
     badge: "Try First",
     origin: "Assam, India",
     flavourNotes: ["Malty", "Bold", "Earthy", "Full-bodied"],
