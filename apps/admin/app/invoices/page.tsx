@@ -33,6 +33,7 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [generating, setGenerating] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetch("/api/orders")
@@ -55,6 +56,32 @@ export default function InvoicesPage() {
       setSelected(new Set());
     } else {
       setSelected(new Set(orders.map((o) => o.id)));
+    }
+  }
+
+  async function processInvoices() {
+    if (selected.size === 0) return;
+    setProcessing(true);
+    const selectedOrders = orders.filter((o) => selected.has(o.id));
+    const orderRefs = selectedOrders.map((o) => o.orderRef);
+    try {
+      const res = await fetch("/api/orders/process-invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderRefs }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Processed ${data.processed} invoice(s) to Documents.`);
+        // Refresh orders to show updated invoiceKey
+        fetch("/api/orders").then((r) => r.json()).then(setOrders).catch(() => {});
+      } else {
+        alert(data.error || "Failed to process invoices");
+      }
+    } catch {
+      alert("Request failed");
+    } finally {
+      setProcessing(false);
     }
   }
 
@@ -89,15 +116,22 @@ export default function InvoicesPage() {
         {selected.size > 0 && (
           <div className="flex gap-3">
             <button
+              onClick={processInvoices}
+              disabled={processing || generating}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50"
+            >
+              {processing ? "Processing..." : `Process to Docs (${selected.size})`}
+            </button>
+            <button
               onClick={() => generatePdf("invoice")}
-              disabled={generating}
+              disabled={generating || processing}
               className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50"
             >
               {generating ? "Generating..." : `Generate Invoice PDF (${selected.size})`}
             </button>
             <button
               onClick={() => generatePdf("gst")}
-              disabled={generating}
+              disabled={generating || processing}
               className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50"
             >
               {generating ? "Generating..." : `Generate GST Summary (${selected.size})`}

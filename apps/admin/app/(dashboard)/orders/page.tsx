@@ -132,13 +132,14 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
 function RowActions({
   order, busy,
-  onView, onCreateWaybill, onSyncStatus, onCancel,
+  onView, onCreateWaybill, onSyncStatus, onCancel, onDelete,
 }: {
   order: Order; busy: boolean;
   onView: () => void;
   onCreateWaybill: () => void;
   onSyncStatus: () => void;
   onCancel: () => void;
+  onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -215,6 +216,16 @@ function RowActions({
           >
             Download Invoice
           </a>
+
+          <div className="border-t border-gray-100 my-1" />
+
+          <button
+            onClick={() => { onDelete(); setOpen(false); }}
+            disabled={busy}
+            className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 disabled:opacity-40"
+          >
+            Delete Order
+          </button>
         </div>
       )}
     </div>
@@ -374,6 +385,22 @@ export default function OrdersPage() {
       const data = await res.json();
       showToast(data.success ? "success" : "error", data.message || data.error || "Done");
       loadOrders();
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
+  const deleteOrder = async (orderRef: string) => {
+    if (!confirm(`Permanently delete order ${orderRef} and its invoice? This cannot be undone.`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/orders/${orderRef}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        showToast("success", `Order ${orderRef} deleted`);
+        loadOrders();
+      } else {
+        showToast("error", data.error || "Failed to delete");
+      }
     } catch { showToast("error", "Request failed"); }
     setBusy(false);
   };
@@ -538,6 +565,7 @@ export default function OrdersPage() {
                       onCreateWaybill={() => createWaybill(o.orderRef)}
                       onSyncStatus={() => syncTracking([o.orderRef])}
                       onCancel={() => cancelShipment(o.orderRef)}
+                      onDelete={() => deleteOrder(o.orderRef)}
                     />
                   </td>
                 </tr>
