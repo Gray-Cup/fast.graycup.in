@@ -39,28 +39,28 @@ export const products: Product[] = [
     name: "Tea Sample",
     tagline: "Try before you commit",
     description:
-      "A 150g introductory pack of our house CTC blend. Grade includes BOPSM, BP, OF, DJ and GFOP from Dooars and Assam with no Artificial Additives.",
+      "A 150gm introductory pack of our house CTC + Orthodox blend. Grade includes BOPSM, BP, OF, DJ and GFOP from Dooars and Assam with no Artificial Additives.",
     category: "CTC Tea",
     image_url:
       "samples.webp",
     origin: "Assam, India",
     variants: [
-      { label: "150g", weightGrams: 150, price: 100, batchId: "GRAYB1" },
+      { label: "150gm", weightGrams: 150, price: 100, batchId: "GRAYB1" },
     ],
   },
   {
     id: "ctc-blend-500",
     slug: "ctc-blend",
-    name: "CTC Blend",
-    tagline: "Our house blend — early access, limited stock",
+    name: "CTC + Orthodox Blend",
+    tagline: "Early Access 500gm Pack",
     description:
-      "500g of our signature CTC blend, sourced from the Brahmaputra valley. Strong, malty, full-bodied — built for daily chai. Early access pricing while stock lasts.",
+      "500gm of our signature CTC + Orthodox blend, Grade includes BOPSM, BP, OF, DJ and GFOP from Dooars and Assam with no Artificial Additives.",
     category: "CTC Tea",
     image_url:
       "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=600&h=600&fit=crop&auto=format",
     origin: "Assam, India",
     variants: [
-      { label: "500g", weightGrams: 500, price: 350, deliveryCharge: 30, batchId: "GRAYB1" },
+      { label: "500gm", weightGrams: 500, price: 360, deliveryCharge: 30, batchId: "GRAYB1" },
     ],
   },
 ];
