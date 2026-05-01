@@ -38,9 +38,9 @@ export const products: Product[] = [
     id: "tea-sample",
     slug: "tea-sample",
     name: "Tea Sample",
-    tagline: "Try before you commit — our signature CTC blend",
+    tagline: "Try before you commit",
     description:
-      "A 150g introductory pack of our house CTC blend. Same tea, smaller pack — perfect for first-timers who want to try before ordering a larger quantity.",
+      "A 150g introductory pack of our house CTC blend. Grade includes BOPSM, BP, OF, DJ and GFOP from Dooars and Assam with no Artificial Additives.",
     category: "CTC Tea",
     image_url:
       "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&h=600&fit=crop&auto=format",
