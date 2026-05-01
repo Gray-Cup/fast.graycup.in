@@ -51,7 +51,7 @@ export const products: Product[] = [
   {
     id: "ctc-blend-500",
     slug: "ctc-blend",
-    name: "CTC + Orthodox Blend",
+    name: "CTC + Orthodox Blend (Early Access)",
     tagline: "Early Access 500gm Pack",
     description:
       "500gm of Assam & Dooars CTC + Orthodox blend, Grade includes BOPSM, BP, OF, DJ and GFOP from Dooars and Assam with no Artificial Additives.",
