@@ -14,10 +14,8 @@ export default function Footer() {
           <div>
             <p className="font-bold text-sm uppercase tracking-widest text-blue-200 mb-3">Policies</p>
             <ul className="space-y-2 text-base text-blue-100">
-              <li><a href="/policies/refund-returns" className="hover:text-white transition-colors">Shipping Policy</a></li>
-              <li><a href="/policies/refund-returns" className="hover:text-white transition-colors">Refund & Returns</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+              <li><a href="/policies/refund-returns" className="hover:text-white transition-colors">Refunds & Cancellations</a></li>
+              <li><a href="/policies/terms" className="hover:text-white transition-colors">Terms & Conditions</a></li>
             </ul>
           </div>
 
@@ -25,9 +23,9 @@ export default function Footer() {
           <div>
             <p className="font-bold text-sm uppercase tracking-widest text-blue-200 mb-3">Contact</p>
             <ul className="space-y-2 text-base text-blue-100">
+              <li><a href="/contact" className="hover:text-white transition-colors">Contact Us</a></li>
               <li><a href="mailto:arjun@graycup.in" className="hover:text-white transition-colors">arjun@graycup.in</a></li>
               <li><a href="tel:+918527914317" className="hover:text-white transition-colors">+91 85279 14317</a></li>
-              <li className="text-blue-200">Mon–Sat, 10am–6pm IST</li>
             </ul>
           </div>
         </div>

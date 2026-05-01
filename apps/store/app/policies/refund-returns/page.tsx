@@ -1,81 +1,37 @@
 export default function RefundReturnsPage() {
   return (
     <div className="py-14 px-4">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-black text-blue-600 mb-2">Refund & Returns</h1>
-        <p className="text-blue-400 mb-10">Last updated: May 2026</p>
+      <div className="max-w-2xl mx-auto">
+        <h1 className="text-3xl font-black text-gray-900 mb-1">Refunds & Cancellations</h1>
+        <p className="text-sm text-gray-400 mb-10">Last updated: May 2026</p>
 
-        <div className="space-y-12 text-blue-800">
+        <div className="space-y-10 text-gray-700">
           <section>
-            <h2 className="text-xl font-bold mb-4">Our Return Policy</h2>
-            <p className="text-blue-600 leading-relaxed">
-              We want you to be happy with your purchase. If you are not satisfied, we offer a hassle-free return policy.
-            </p>
-            <ul className="mt-4 space-y-2 text-blue-600">
-              <li>• Returns accepted within 7 days of delivery</li>
-              <li>• Items must be unopened and in original packaging</li>
-              <li>• Contact us at arjun@graycup.in to initiate a return</li>
-            </ul>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Cancellations</h2>
+            <p className="leading-relaxed">Orders can be cancelled within 12 hours of placing them by contacting us at <a href="mailto:arjun@graycup.in" className="text-amber-600 hover:underline">arjun@graycup.in</a> or calling <a href="tel:+918527914317" className="text-amber-600 hover:underline">+91 85279 14317</a>. Once the order has been dispatched, cancellation is not possible.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold mb-4">Refund Process</h2>
-            <p className="text-blue-600 leading-relaxed">
-              Once we receive and inspect your returned item, we will process your refund within 5-7 business days. The refund will be credited to your original payment method.
-            </p>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Returns</h2>
+            <p className="leading-relaxed">We accept returns within 7 days of delivery if the item is received in damaged or incorrect condition. Items must be unopened and in original packaging. Perishable goods (tea) cannot be returned once opened.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold mb-4">Exceptions</h2>
-            <p className="text-blue-600 leading-relaxed">
-              Perishable items (tea, coffee) cannot be returned once opened. Shipping costs are non-refundable for change-of-mind returns.
-            </p>
-          </section>
-
-          <hr className="border-blue-100" />
-
-          <section>
-            <h2 className="text-3xl font-black text-blue-600 mb-2">Shipping Policy</h2>
-            <p className="text-blue-400 mb-6">Last updated: May 2026</p>
-            
-            <h3 className="text-lg font-bold mb-3">Delivery Partners</h3>
-            <p className="text-blue-600 leading-relaxed">
-              We ship via Delhivery and India Post to ensure pan-India coverage. Tracking details are shared via email and WhatsApp once your order ships.
-            </p>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Refunds</h2>
+            <p className="leading-relaxed">Once your return is received and inspected, refunds are processed within 5–7 business days to your original payment method. Shipping charges are non-refundable for change-of-mind returns.</p>
           </section>
 
           <section>
-            <h3 className="text-lg font-bold mb-3">Shipping Rates</h3>
-            <ul className="space-y-2 text-blue-600">
-              <li>• Orders above ₹499: Free shipping</li>
-              <li>• Orders below ₹499: ₹50 flat shipping charge</li>
-              <li>• Remote/pin codes may incur additional charges (we will inform you before checkout)</li>
-            </ul>
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Shipping</h2>
+            <p className="leading-relaxed">We ship via Delhivery across India. Tracking details are shared once your order is dispatched. Delivery typically takes 3–7 business days depending on location.</p>
           </section>
 
           <section>
-            <h3 className="text-lg font-bold mb-3">Delivery Timelines</h3>
-            <ul className="space-y-2 text-blue-600">
-              <li>• Metro cities: 3-5 business days</li>
-              <li>• Tier 2/3 cities: 5-7 business days</li>
-              <li>• Remote areas: 7-10 business days</li>
-            </ul>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-bold mb-3">Tracking Your Order</h3>
-            <p className="text-blue-600 leading-relaxed">
-              Once your order ships, you will receive a tracking link via email. You can also track your order status by contacting us at arjun@graycup.in.
-            </p>
-          </section>
-
-          <section>
-            <h3 className="text-lg font-bold mb-3">Contact Us</h3>
-            <p className="text-blue-600 leading-relaxed">
-              For any questions about your order, reach out to us:<br />
-              Email: <a href="mailto:arjun@graycup.in" className="text-blue-500 hover:underline">arjun@graycup.in</a><br />
-              Phone: <a href="tel:+918527914317" className="text-blue-500 hover:underline">+91 85279 14317</a><br />
-              Hours: Mon–Sat, 10am–6pm IST
+            <h2 className="text-lg font-bold text-gray-900 mb-3">Contact</h2>
+            <p className="leading-relaxed">
+              Email: <a href="mailto:arjun@graycup.in" className="text-amber-600 hover:underline">arjun@graycup.in</a><br />
+              Phone: <a href="tel:+918527914317" className="text-amber-600 hover:underline">+91 85279 14317</a><br />
+              Mon–Sat, 10am–6pm IST
             </p>
           </section>
         </div>
