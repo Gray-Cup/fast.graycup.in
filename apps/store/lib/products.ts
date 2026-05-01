@@ -14,10 +14,8 @@ export interface Product {
   description: string;
   category: "CTC Tea" | "Coffee";
   image_url: string;
-  badge?: string;
   variants: ProductVariant[];
   origin: string;
-  flavourNotes: string[];
 }
 
 export const GST_RATE = 0.05; // Tea and coffee: 5% GST
@@ -45,9 +43,7 @@ export const products: Product[] = [
     category: "CTC Tea",
     image_url:
       "samples.webp",
-    badge: "Try First",
     origin: "Assam, India",
-    flavourNotes: ["Malty", "Bold", "Earthy", "Full-bodied"],
     variants: [
       { label: "150g", weightGrams: 150, price: 100, batchId: "GRAYB1" },
     ],
@@ -62,9 +58,7 @@ export const products: Product[] = [
     category: "CTC Tea",
     image_url:
       "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=600&h=600&fit=crop&auto=format",
-    badge: "Early Access",
     origin: "Assam, India",
-    flavourNotes: ["Malty", "Bold", "Earthy", "Full-bodied"],
     variants: [
       { label: "500g", weightGrams: 500, price: 350, deliveryCharge: 30, batchId: "GRAYB1" },
     ],
