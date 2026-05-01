@@ -17,7 +17,7 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center">
-              <span className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900">
+              <span className="text-2xl sm:text-3xl font-medium tracking-tight text-gray-900">
                 Gray Cup<span className="text-amber-500"> (Fast)</span>
               </span>
             </Link>
