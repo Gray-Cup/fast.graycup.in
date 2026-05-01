@@ -34,7 +34,7 @@ export default function AdminHome() {
   ];
 
   return (
-    <div>
+    <div className="h-full overflow-y-auto">
       <h1 className="text-2xl font-black mb-6">Dashboard</h1>
 
       {loading ? (

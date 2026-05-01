@@ -379,11 +379,11 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col h-full gap-3">
       {toast && <Toast type={toast.type} msg={toast.msg} />}
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="shrink-0 flex flex-wrap items-center gap-3">
         {/* Filter tabs */}
         <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
           {FILTERS.map((f) => (
@@ -466,9 +466,9 @@ export default function OrdersPage() {
           <div className="w-8 h-8 border-3 border-amber-400 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
+        <div className="flex-1 min-h-0 bg-white rounded-2xl border border-gray-200 overflow-y-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10">
               <tr className="bg-gray-50 border-b border-gray-200 text-left">
                 <th className="px-4 py-3">
                   <input

@@ -83,7 +83,7 @@ export default function InvoicesPage() {
   }
 
   return (
-    <div>
+    <div className="h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-black">Invoices</h1>
         {selected.size > 0 && (

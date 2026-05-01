@@ -69,7 +69,7 @@ export default function DocumentsPage() {
   const filtered = documents;
 
   return (
-    <div>
+    <div className="h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-black">Documents</h1>
         <div className="flex gap-3">
