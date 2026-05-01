@@ -55,7 +55,7 @@ export default function AdminHome() {
           <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
               <h2 className="font-bold text-sm text-gray-700">Recent Orders</h2>
-              <a href="/orders" className="text-xs font-medium text-amber-600 hover:text-amber-800">View all →</a>
+              <a href="/orders" className="text-xs font-medium text-amber-600 hover:text-amber-800">View all </a>
             </div>
             <table className="w-full text-sm">
               <tbody>
