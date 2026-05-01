@@ -14,7 +14,7 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "Gray Cup Fast",
-  description: "CTC tea from Assam. Shipped fast across India.",
+  description: "Gray Cup sells tea and coffee. Shipped fast across India.",
   icons: { icon: "/favicon.png" },
   openGraph: { images: [{ url: "/og.png" }] },
 };
