@@ -57,7 +57,7 @@ export const products: Product[] = [
       "500gm of Assam & Dooars CTC + Orthodox blend, Grade includes BOPSM, BP, OF, DJ and GFOP from Dooars and Assam with no Artificial Additives.",
     category: "CTC Tea",
     image_url:
-      "500gm.png",
+      "/500gm.png",
     origin: "Assam, India",
     variants: [
       { label: "500gm", weightGrams: 500, price: 360, deliveryCharge: 30, batchId: "GRAYB1" },
