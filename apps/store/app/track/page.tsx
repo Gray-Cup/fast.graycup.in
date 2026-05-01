@@ -73,25 +73,24 @@ export default function TrackPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <main className="max-w-2xl mx-auto px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <h1 className="text-xl sm:text-2xl font-black text-gray-900 mb-5">Track Shipment</h1>
 
-      <main className="max-w-2xl mx-auto px-4 py-10">
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <h1 className="text-2xl font-black text-gray-900 mb-6">Track Shipment</h1>
-
-          <form onSubmit={handleTrack} className="flex gap-3 mb-8">
+          <form onSubmit={handleTrack} className="flex flex-col sm:flex-row gap-2 mb-6">
             <input
               type="text"
               value={awb}
               onChange={(e) => setAwb(e.target.value)}
-              placeholder="Enter AWB number (e.g. DHP1234567890)"
-              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-base focus:outline-none focus:ring-2 focus:ring-amber-400"
+              placeholder="AWB number (e.g. DHP1234567890)"
+              className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
             <button
               type="submit"
               disabled={loading || !awb.trim()}
-              className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white font-bold px-6 py-3 rounded-xl transition-colors"
+              className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 text-white font-bold px-6 py-3 rounded-xl transition-colors whitespace-nowrap cursor-pointer"
             >
-              {loading ? "Tracking..." : "Track"}
+              {loading ? "Tracking…" : "Track"}
             </button>
           </form>
 
@@ -101,27 +100,42 @@ export default function TrackPage() {
 
           {data && shipment && (
             <div>
-              <div className="bg-stone-50 rounded-xl p-4 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span className={`text-sm font-bold px-3 py-1 rounded-full ${isDelivered ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                    {status || "In Transit"}
-                  </span>
-                  <span className="text-xs text-gray-500 font-mono">{awb}</span>
+              <div className="bg-stone-50 rounded-xl p-4 mb-4">
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div className="bg-white rounded-lg p-3 border border-gray-100">
+                    <p className="text-xs text-gray-400 mb-1">Status</p>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isDelivered ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+                      {status || "In Transit"}
+                    </span>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-gray-100">
+                    <p className="text-xs text-gray-400 mb-1">AWB</p>
+                    <p className="text-xs font-mono font-bold text-gray-900 truncate">{awb}</p>
+                  </div>
+                  {shipment.CurrentLocation && (
+                    <div className="bg-white rounded-lg p-3 border border-gray-100">
+                      <p className="text-xs text-gray-400 mb-1">Current Location</p>
+                      <p className="text-xs font-semibold text-gray-900">{shipment.CurrentLocation}</p>
+                    </div>
+                  )}
+                  {shipment.destination && (
+                    <div className="bg-white rounded-lg p-3 border border-gray-100">
+                      <p className="text-xs text-gray-400 mb-1">Destination</p>
+                      <p className="text-xs font-semibold text-gray-900">{shipment.destination}</p>
+                    </div>
+                  )}
+                  {shipment.ExpectedDeliveryDate && (
+                    <div className="bg-white rounded-lg p-3 border border-gray-100 col-span-2">
+                      <p className="text-xs text-gray-400 mb-1">Expected Delivery</p>
+                      <p className="text-xs font-semibold text-gray-900">{shipment.ExpectedDeliveryDate}</p>
+                    </div>
+                  )}
                 </div>
-                {shipment.CurrentLocation && (
-                  <p className="text-sm text-gray-600">Current location: <strong className="text-gray-900">{shipment.CurrentLocation}</strong></p>
-                )}
-                {shipment.destination && (
-                  <p className="text-sm text-gray-600 mt-1">Destination: <strong className="text-gray-900">{shipment.destination}</strong></p>
-                )}
-                {shipment.ExpectedDeliveryDate && (
-                  <p className="text-sm text-gray-600 mt-1">Expected: <strong className="text-gray-900">{shipment.ExpectedDeliveryDate}</strong></p>
-                )}
               </div>
 
-              <div className="space-y-0">
-                {shipment.Status && <EventRow event={{ status, location: shipment.CurrentLocation, time: shipment.UpdateTime }} />}
-              </div>
+              {shipment.Status && (
+                <EventRow event={{ status, location: shipment.CurrentLocation, time: shipment.UpdateTime }} />
+              )}
             </div>
           )}
 

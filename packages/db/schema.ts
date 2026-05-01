@@ -16,6 +16,7 @@ export const orders = pgTable("orders", {
   customerAddress: text("customer_address").notNull(),
   customerPincode: text("customer_pincode").notNull(),
   status: text("status").notNull().default("PENDING"),
+  batchId: text("batch_id"),
   delhiveryWaybill: text("delhivery_waybill"),
   invoiceKey: text("invoice_key"),
   invoiceNumber: text("invoice_number"),

@@ -57,6 +57,7 @@ export async function POST(req: NextRequest) {
             quantity: o.quantity,
             amount: o.amount,
             gstAmount: o.gstAmount,
+            batchId: o.batchId,
           },
         }) as React.ReactElement<any>
       );

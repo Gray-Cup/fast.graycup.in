@@ -94,7 +94,10 @@ export default async function InvoicePage({
               </thead>
               <tbody>
                 <tr className="border-t border-gray-200">
-                  <td className="px-4 py-3 font-medium text-gray-900">{o.productName}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">
+                    {o.productName}
+                    {o.batchId && <span className="ml-2 text-xs text-gray-400 font-normal">Batch {o.batchId}</span>}
+                  </td>
                   <td className="px-4 py-3 text-center text-gray-600">{o.variantLabel}</td>
                   <td className="px-4 py-3 text-center text-gray-600">{o.quantity}</td>
                   <td className="px-4 py-3 text-right text-gray-600">₹{subtotal}</td>

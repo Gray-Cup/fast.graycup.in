@@ -58,6 +58,7 @@ export interface InvoiceData {
   quantity: number;
   amount: number;
   gstAmount: number;
+  batchId?: string | null;
 }
 
 export function InvoicePdf({ data }: { data: InvoiceData }) {
@@ -100,7 +101,7 @@ export function InvoicePdf({ data }: { data: InvoiceData }) {
           <Text style={[s.thCell, s.c4]}>Amount</Text>
         </View>
         <View style={s.tRow}>
-          <Text style={[s.tdCell, s.c1]}>{data.productName}</Text>
+          <Text style={[s.tdCell, s.c1]}>{data.productName}{data.batchId ? ` · Batch ${data.batchId}` : ""}</Text>
           <Text style={[s.tdCell, s.c2]}>{data.variantLabel}</Text>
           <Text style={[s.tdCell, s.c3]}>{data.quantity}</Text>
           <Text style={[s.tdCell, s.c4]}>Rs. {subtotal}</Text>

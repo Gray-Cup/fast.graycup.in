@@ -3,6 +3,7 @@ export interface ProductVariant {
   weightGrams: number;
   price: number; // GST-inclusive price in ₹
   deliveryCharge?: number; // flat delivery charge if applicable
+  batchId?: string; // production batch identifier
 }
 
 export interface Product {
@@ -48,7 +49,7 @@ export const products: Product[] = [
     origin: "Assam, India",
     flavourNotes: ["Malty", "Bold", "Earthy", "Full-bodied"],
     variants: [
-      { label: "150g", weightGrams: 150, price: 100 },
+      { label: "150g", weightGrams: 150, price: 100, batchId: "GRAYB1" },
     ],
   },
   {
@@ -65,7 +66,7 @@ export const products: Product[] = [
     origin: "Assam, India",
     flavourNotes: ["Malty", "Bold", "Earthy", "Full-bodied"],
     variants: [
-      { label: "500g", weightGrams: 500, price: 350, deliveryCharge: 30 },
+      { label: "500g", weightGrams: 500, price: 350, deliveryCharge: 30, batchId: "GRAYB1" },
     ],
   },
 ];

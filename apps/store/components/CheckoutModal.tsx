@@ -121,6 +121,7 @@ export default function CheckoutModal({
           weightGrams: variant.weightGrams * quantity,
           quantity,
           amount: total,
+          batchId: variant.batchId ?? null,
           customer: {
             ...form,
             address: `${form.address}, ${form.city}, ${form.state}`,

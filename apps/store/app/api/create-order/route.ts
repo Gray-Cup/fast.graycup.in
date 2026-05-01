@@ -12,6 +12,7 @@ interface OrderLine {
   weightGrams: number;
   quantity: number;
   price: number;
+  batchId?: string | null;
 }
 
 interface OrderPayload {
@@ -21,6 +22,7 @@ interface OrderPayload {
   weightGrams?: number;
   quantity?: number;
   amount: number;
+  batchId?: string | null;
   items?: OrderLine[];
   customer: {
     name: string;
@@ -41,6 +43,7 @@ export async function POST(req: NextRequest) {
       : `${body.productName} ${body.variantLabel} ×${body.quantity}`;
     const variantLabel = body.variantLabel ?? items?.map((i) => i.variantLabel).join(", ") ?? "";
     const quantity = body.quantity ?? items?.reduce((s, i) => s + i.quantity, 0) ?? 1;
+    const batchId = body.batchId ?? items?.[0]?.batchId ?? null;
 
     if (!amount || !customer?.name || !customer?.phone || !customer?.address || !customer?.pincode) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -121,6 +124,7 @@ export async function POST(req: NextRequest) {
       customerEmail: customer.email || null,
       customerAddress: customer.address + (pincodeInfo ? `, ${pincodeInfo.city}` : ""),
       customerPincode: customer.pincode,
+      batchId,
       status: "PENDING",
     });
 

@@ -93,6 +93,7 @@ export default function CartCheckoutModal({ onClose }: { onClose: () => void }) 
         weightGrams: i.product.variants[i.variantIndex].weightGrams,
         quantity: i.quantity,
         price: i.product.variants[i.variantIndex].price,
+        batchId: i.product.variants[i.variantIndex].batchId ?? null,
       }));
 
       const res = await fetch("/api/create-order", {
