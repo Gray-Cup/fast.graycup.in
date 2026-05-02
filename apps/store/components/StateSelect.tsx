@@ -54,6 +54,7 @@ export default function StateSelect({ value, onChange, required }: StateSelectPr
       <Select.Trigger
         className="w-full px-3 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition-all bg-gray-50 flex items-center justify-between cursor-pointer data-[placeholder]:text-gray-400"
         aria-label="State"
+        tabIndex={0}
       >
         <Select.Value placeholder="Select state" />
         <Select.Icon>
