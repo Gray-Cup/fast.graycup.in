@@ -189,12 +189,8 @@ export async function getShippingLabels(waybills: string[]): Promise<{ pdf: Arra
     // pdf=true returns JSON with an S3 link, not a direct PDF stream
     if (contentType.includes("application/json") || contentType.includes("text/")) {
       const data = await res.json();
-      // Delhivery returns the S3 URL in one of these fields
-      const s3Url: string | undefined =
-        data?.pdf_download_link ??
-        data?.url ??
-        data?.link ??
-        (typeof data === "string" && data.startsWith("http") ? data : undefined);
+      // Response is { packages: [{ pdf_download_link: "https://..." }] }
+      const s3Url: string | undefined = data?.packages?.[0]?.pdf_download_link;
 
       if (!s3Url) {
         return { error: `Unexpected Delhivery response: ${JSON.stringify(data).slice(0, 300)}` };

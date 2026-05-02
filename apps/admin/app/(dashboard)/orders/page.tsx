@@ -42,6 +42,26 @@ function displayStatus(status: string, createdAt: string) {
   return status;
 }
 
+function StatusBadge({ status, createdAt }: { status: string; createdAt: string }) {
+  const ds = displayStatus(status, createdAt);
+  const colorClass = STATUS_COLORS[ds] || "bg-gray-100 text-gray-600";
+
+  if (ds === "DISPATCHED") {
+    return (
+      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${colorClass}`}>
+        Pickup
+        <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse shrink-0" />
+      </span>
+    );
+  }
+
+  return (
+    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${colorClass}`}>
+      {ds}
+    </span>
+  );
+}
+
 // ─── Order Detail Modal ──────────────────────────────────────────────────────
 
 function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => void }) {
@@ -64,11 +84,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
         <div className="px-6 py-5 flex flex-col gap-5">
           <div className="flex items-center gap-3">
-            {(() => { const ds = displayStatus(order.status, order.createdAt); return (
-              <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${STATUS_COLORS[ds] || "bg-gray-100 text-gray-600"}`}>
-                {ds}
-              </span>
-            ); })()}
+            <StatusBadge status={order.status} createdAt={order.createdAt} />
             <span className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString("en-IN")}</span>
           </div>
 
@@ -590,11 +606,7 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-4 py-3 text-right font-bold">₹{o.amount}</td>
                   <td className="px-4 py-3">
-                    {(() => { const ds = displayStatus(o.status, o.createdAt); return (
-                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[ds] || "bg-gray-100 text-gray-600"}`}>
-                        {ds}
-                      </span>
-                    ); })()}
+                    <StatusBadge status={o.status} createdAt={o.createdAt} />
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">{o.delhiveryWaybill || "—"}</td>
                   <td className="px-4 py-3 text-xs text-gray-400">
