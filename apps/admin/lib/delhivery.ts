@@ -186,20 +186,39 @@ export async function getShippingLabels(waybills: string[]): Promise<{ pdf: Arra
 
     const contentType = res.headers.get("content-type") ?? "";
 
-    // pdf=true returns JSON with an S3 link, not a direct PDF stream
+    // pdf=true returns JSON with S3 links — one per waybill
     if (contentType.includes("application/json") || contentType.includes("text/")) {
       const data = await res.json();
-      // Response is { packages: [{ pdf_download_link: "https://..." }] }
-      const s3Url: string | undefined = data?.packages?.[0]?.pdf_download_link;
+      // Response: { packages: [{ pdf_download_link: "https://..." }, ...] }
+      const s3Urls: string[] = (data?.packages ?? [])
+        .map((p: { pdf_download_link?: string }) => p?.pdf_download_link)
+        .filter(Boolean);
 
-      if (!s3Url) {
+      if (s3Urls.length === 0) {
         return { error: `Unexpected Delhivery response: ${JSON.stringify(data).slice(0, 300)}` };
       }
 
-      const pdfRes = await fetch(s3Url);
-      if (!pdfRes.ok) return { error: `Failed to fetch label from S3: ${pdfRes.status}` };
-      const pdf = await pdfRes.arrayBuffer();
-      return { pdf };
+      // Download all label PDFs in parallel
+      const pdfBuffers = await Promise.all(
+        s3Urls.map(async (url) => {
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(`Failed to fetch label from S3: ${r.status}`);
+          return r.arrayBuffer();
+        })
+      );
+
+      if (pdfBuffers.length === 1) return { pdf: pdfBuffers[0] };
+
+      // Merge multiple PDFs into one (concatenate pages)
+      const { PDFDocument } = await import("pdf-lib");
+      const merged = await PDFDocument.create();
+      for (const buf of pdfBuffers) {
+        const src = await PDFDocument.load(buf);
+        const pages = await merged.copyPages(src, src.getPageIndices());
+        for (const page of pages) merged.addPage(page);
+      }
+      const mergedBytes = await merged.save();
+      return { pdf: mergedBytes.buffer as ArrayBuffer };
     }
 
     // Direct PDF stream (fallback)

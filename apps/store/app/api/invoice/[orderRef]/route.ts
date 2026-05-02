@@ -20,6 +20,13 @@ export async function GET(
 
   const order = rows[0];
 
+  if (order.status === "PENDING") {
+    return NextResponse.json(
+      { error: "Invoice not ready yet. Your payment is still being confirmed." },
+      { status: 202 }
+    );
+  }
+
   // Serve from bucket0 if already uploaded
   if (order.invoiceKey) {
     try {
@@ -33,7 +40,16 @@ export async function GET(
           "Content-Disposition": `attachment; filename="Invoice-${orderRef}.pdf"`,
         },
       });
-    } catch {}
+    } catch (err) {
+      console.error("[invoice] S3 fetch failed, regenerating:", err);
+    }
+  }
+
+  if (!order.invoiceNumber) {
+    return NextResponse.json(
+      { error: "Invoice not available for this order." },
+      { status: 404 }
+    );
   }
 
   // Generate, upload to bucket0, then serve

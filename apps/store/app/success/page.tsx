@@ -17,6 +17,33 @@ function SuccessContent() {
 
   const [state, setState] = useState<VerifyState>("checking");
   const [attempts, setAttempts] = useState(0);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
+
+  const downloadInvoice = async () => {
+    if (!orderId) return;
+    setInvoiceLoading(true);
+    setInvoiceError(null);
+    try {
+      const res = await fetch(`/api/invoice/${orderId}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setInvoiceError(data.error ?? "Invoice not available yet. Try again in a moment.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Invoice-${orderId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setInvoiceError("Download failed. Please try again.");
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!orderId || !token) { setState("failed"); return; }
@@ -132,14 +159,17 @@ function SuccessContent() {
             </div>
           )}
           {orderId && (
-            <div className="pt-3 border-t border-amber-200">
-              <a
-                href={`/api/invoice/${orderId}`}
-                download={`Invoice-${orderId}.pdf`}
-                className="flex items-center justify-center w-full py-2.5 px-4 bg-stone-900 hover:bg-stone-800 text-white font-bold text-sm rounded-xl transition-colors"
+            <div className="pt-3 border-t border-amber-200 space-y-2">
+              <button
+                onClick={downloadInvoice}
+                disabled={invoiceLoading}
+                className="flex items-center justify-center w-full py-2.5 px-4 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white font-bold text-sm rounded-xl transition-colors cursor-pointer"
               >
-                Download Invoice
-              </a>
+                {invoiceLoading ? "Downloading…" : "Download Invoice"}
+              </button>
+              {invoiceError && (
+                <p className="text-xs text-red-500 text-center">{invoiceError}</p>
+              )}
             </div>
           )}
         </div>
