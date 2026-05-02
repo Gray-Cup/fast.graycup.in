@@ -17,7 +17,8 @@ export async function generateMetadata(
     return { title: "Product Not Found — Gray Cup Fast" };
   }
 
-  const ogImage = OG_IMAGES[slug] ?? "/og.png";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://graycup.in";
+  const ogImage = `${baseUrl}${OG_IMAGES[slug] ?? "/og.png"}`;
   const price = product.variants[0].price;
 
   return {
@@ -26,7 +27,7 @@ export async function generateMetadata(
     openGraph: {
       title: product.name,
       description: product.tagline,
-      images: [{ url: ogImage }],
+      images: [{ url: ogImage, width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",

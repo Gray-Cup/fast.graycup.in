@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
-import { count, sql, eq, desc, inArray } from "drizzle-orm";
+import { sql, eq, desc, inArray } from "drizzle-orm";
+import { randomBytes } from "crypto";
 import * as schema from "./schema";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -20,19 +21,16 @@ export const db = new Proxy({} as ReturnType<typeof drizzle>, {
   },
 });
 
-export { sql, count, eq, desc, inArray, schema };
+export { sql, eq, desc, inArray, schema };
 
 export async function generateOrderRef(): Promise<string> {
-  const result = await db.select({ count: count() }).from(schema.orders);
-  const n = Number(result[0].count) + 1;
-  return `GCF-${String(n).padStart(4, "0")}`;
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const randomPart = randomBytes(3).toString("hex").toUpperCase();
+  return `GCF-${timestamp}${randomPart}`;
 }
 
 export async function generateInvoiceRef(): Promise<string> {
-  const result = await db
-    .select({ count: count() })
-    .from(schema.orders)
-    .where(sql`${schema.orders.invoiceNumber} IS NOT NULL`);
-  const n = Number(result[0].count) + 1;
-  return `GCFINV-${String(n).padStart(4, "0")}`;
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const randomPart = randomBytes(3).toString("hex").toUpperCase();
+  return `GCFINV-${timestamp}${randomPart}`;
 }
