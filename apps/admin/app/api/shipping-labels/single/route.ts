@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
   }
 
   const res = await fetch(
-    `${BASE_URL}/api/p/packing_slip?wbns=${encodeURIComponent(waybill)}&pdf_size=4R`,
-    { headers: { Authorization: `Token ${DELHIVERY_TOKEN}`, "Content-Type": "application/json" } }
+    `${BASE_URL}/api/p/packing_slip?wbns=${encodeURIComponent(waybill)}&pdf=true&pdf_size=4R`,
+    { headers: { Authorization: `Token ${DELHIVERY_TOKEN}` } }
   );
 
   if (!res.ok) {
