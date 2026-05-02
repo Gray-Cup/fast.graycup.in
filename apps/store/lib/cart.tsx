@@ -11,7 +11,7 @@ export interface CartItem {
 
 interface CartContextValue {
   items: CartItem[];
-  addToCart: (product: Product, variantIndex?: number) => void;
+  addToCart: (product: Product, variantIndex?: number, qty?: number) => void;
   removeFromCart: (productId: string, variantIndex: number) => void;
   updateQty: (productId: string, variantIndex: number, qty: number) => void;
   clearCart: () => void;
@@ -35,17 +35,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("gc_cart", JSON.stringify(next));
   };
 
-  const addToCart = (product: Product, variantIndex = 0) => {
+  const addToCart = (product: Product, variantIndex = 0, qty = 1) => {
     setItems((prev) => {
+      const total = prev.reduce((s, i) => s + i.quantity, 0);
+      if (total >= 20) return prev;
+      const allowed = Math.min(qty, 20 - total);
       const idx = prev.findIndex(
         (i) => i.product.id === product.id && i.variantIndex === variantIndex
       );
       const next =
         idx >= 0
           ? prev.map((i, n) =>
-              n === idx ? { ...i, quantity: i.quantity + 1 } : i
+              n === idx ? { ...i, quantity: i.quantity + allowed } : i
             )
-          : [...prev, { product, variantIndex, quantity: 1 }];
+          : [...prev, { product, variantIndex, quantity: allowed }];
       localStorage.setItem("gc_cart", JSON.stringify(next));
       return next;
     });
@@ -60,10 +63,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const updateQty = (productId: string, variantIndex: number, qty: number) => {
     if (qty <= 0) return removeFromCart(productId, variantIndex);
+    const otherTotal = items
+      .filter((i) => !(i.product.id === productId && i.variantIndex === variantIndex))
+      .reduce((s, i) => s + i.quantity, 0);
+    const capped = Math.min(qty, 20 - otherTotal);
     persist(
       items.map((i) =>
         i.product.id === productId && i.variantIndex === variantIndex
-          ? { ...i, quantity: qty }
+          ? { ...i, quantity: capped }
           : i
       )
     );
