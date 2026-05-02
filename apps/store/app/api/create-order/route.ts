@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHmac } from "crypto";
 import { db, generateOrderRef } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { getPincodeDetails } from "@/lib/delhivery";
+
+export function orderToken(orderRef: string): string {
+  const secret = process.env.CASHFREE_SECRET_KEY ?? "fallback";
+  return createHmac("sha256", secret).update(orderRef).digest("hex").slice(0, 24);
+}
 
 const GST_RATE = 0.05;
 
@@ -90,7 +96,7 @@ export async function POST(req: NextRequest) {
           ...(customer.email ? { customer_email: customer.email } : {}),
         },
         order_meta: {
-          return_url: `${baseUrl}/success?order_id=${orderRef}&product=${encodeURIComponent(productName)}&variant=${encodeURIComponent(variantLabel)}&qty=${quantity}&amount=${amount}`,
+          return_url: `${baseUrl}/success?order_id=${orderRef}&token=${orderToken(orderRef)}&product=${encodeURIComponent(productName)}&variant=${encodeURIComponent(variantLabel)}&qty=${quantity}&amount=${amount}`,
           notify_url: `${baseUrl}/api/cashfree-webhook`,
         },
         order_note: `${productName} | ${customer.address}, ${customer.pincode}`,

@@ -9,6 +9,7 @@ type VerifyState = "checking" | "confirmed" | "pending" | "failed";
 function SuccessContent() {
   const params = useSearchParams();
   const orderId = params.get("order_id");
+  const token = params.get("token");
   const product = params.get("product");
   const variant = params.get("variant");
   const qty = params.get("qty");
@@ -18,7 +19,7 @@ function SuccessContent() {
   const [attempts, setAttempts] = useState(0);
 
   useEffect(() => {
-    if (!orderId) { setState("failed"); return; }
+    if (!orderId || !token) { setState("failed"); return; }
 
     let cancelled = false;
     const MAX_ATTEMPTS = 8;
@@ -26,7 +27,7 @@ function SuccessContent() {
 
     async function check() {
       try {
-        const res = await fetch(`/api/order-status?order_id=${orderId}`);
+        const res = await fetch(`/api/order-status?order_id=${orderId}&token=${token}`);
         const data = await res.json();
         if (cancelled) return;
 

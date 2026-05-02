@@ -2,11 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { orderToken } from "@/app/api/create-order/route";
 
 export async function GET(req: NextRequest) {
   const orderRef = req.nextUrl.searchParams.get("order_id");
-  if (!orderRef) {
-    return NextResponse.json({ error: "Missing order_id" }, { status: 400 });
+  const token = req.nextUrl.searchParams.get("token");
+
+  if (!orderRef || !token) {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  if (token !== orderToken(orderRef)) {
+    return NextResponse.json({ error: "Invalid token" }, { status: 403 });
   }
 
   const rows = await db.select({
