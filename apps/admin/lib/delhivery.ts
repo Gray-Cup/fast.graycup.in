@@ -171,62 +171,6 @@ export function mapDelhiveryStatus(statusType: string): string | null {
   }
 }
 
-export async function getShippingLabels(waybills: string[]): Promise<{ pdf: ArrayBuffer } | { error: string }> {
-  if (!DELHIVERY_TOKEN) return { error: "DELHIVERY_API_TOKEN not configured" };
-  try {
-    const wbns = waybills.join(",");
-    const res = await fetch(
-      `${BASE_URL}/api/p/packing_slip?wbns=${wbns}&pdf=true&pdf_size=A4`,
-      { headers: { Authorization: `Token ${DELHIVERY_TOKEN}`, "Content-Type": "application/json" } }
-    );
-    if (!res.ok) {
-      const text = await res.text();
-      return { error: `Delhivery returned ${res.status}: ${text.slice(0, 200)}` };
-    }
-
-    const contentType = res.headers.get("content-type") ?? "";
-
-    // pdf=true returns JSON with S3 links — one per waybill
-    if (contentType.includes("application/json") || contentType.includes("text/")) {
-      const data = await res.json();
-      // Response: { packages: [{ pdf_download_link: "https://..." }, ...] }
-      const s3Urls: string[] = (data?.packages ?? [])
-        .map((p: { pdf_download_link?: string }) => p?.pdf_download_link)
-        .filter(Boolean);
-
-      if (s3Urls.length === 0) {
-        return { error: `Unexpected Delhivery response: ${JSON.stringify(data).slice(0, 300)}` };
-      }
-
-      // Download all label PDFs in parallel
-      const pdfBuffers = await Promise.all(
-        s3Urls.map(async (url) => {
-          const r = await fetch(url);
-          if (!r.ok) throw new Error(`Failed to fetch label from S3: ${r.status}`);
-          return r.arrayBuffer();
-        })
-      );
-
-      // Merge raw pages without any transformation
-      const { PDFDocument } = await import("pdf-lib");
-      const output = await PDFDocument.create();
-      for (const buf of pdfBuffers) {
-        const src = await PDFDocument.load(buf);
-        const pages = await output.copyPages(src, src.getPageIndices());
-        pages.forEach((p) => output.addPage(p));
-      }
-      const mergedBytes = await output.save();
-      return { pdf: mergedBytes.buffer as ArrayBuffer };
-    }
-
-    // Direct PDF stream (fallback)
-    const pdf = await res.arrayBuffer();
-    return { pdf };
-  } catch (err) {
-    return { error: String(err) };
-  }
-}
-
 export async function triggerPickup(expectedCount: number): Promise<{ success: boolean; pickupId?: string; error?: string }> {
   if (!DELHIVERY_TOKEN) return { success: false, error: "DELHIVERY_API_TOKEN not configured" };
 
