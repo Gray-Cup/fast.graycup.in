@@ -25,6 +25,7 @@ type Order = {
 };
 
 type Filter = "all" | "unfulfilled" | "dispatched" | "delivered";
+type SortKey = "newest" | "oldest" | "amount-desc" | "amount-asc";
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -375,6 +376,7 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<Filter>("all");
+  const [sort, setSort] = useState<SortKey>("newest");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
@@ -396,12 +398,19 @@ export default function OrdersPage() {
     setTimeout(() => setToast(null), 4000);
   }, []);
 
-  const filteredOrders = orders.filter((o) => {
-    if (filter === "unfulfilled") return ["PAID", "PAID_DISPATCH_PENDING"].includes(o.status);
-    if (filter === "dispatched") return o.status === "DISPATCHED";
-    if (filter === "delivered") return o.status === "DELIVERED";
-    return true;
-  });
+  const filteredOrders = orders
+    .filter((o) => {
+      if (filter === "unfulfilled") return ["PAID", "PAID_DISPATCH_PENDING"].includes(o.status);
+      if (filter === "dispatched") return o.status === "DISPATCHED";
+      if (filter === "delivered") return o.status === "DELIVERED";
+      return true;
+    })
+    .sort((a, b) => {
+      if (sort === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (sort === "amount-desc") return b.amount - a.amount;
+      if (sort === "amount-asc") return a.amount - b.amount;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); // newest
+    });
 
   const unfulfilledCount = orders.filter((o) => ["PAID", "PAID_DISPATCH_PENDING"].includes(o.status)).length;
   const allSelected = filteredOrders.length > 0 && filteredOrders.every((o) => selected.has(o.orderRef));
@@ -674,16 +683,38 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {/* Sync all (when nothing selected) */}
-        {selected.size === 0 && (
-          <button
-            onClick={() => syncTracking()}
-            disabled={busy}
-            className="ml-auto px-3 py-1.5 text-sm font-semibold text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg disabled:opacity-50 transition-colors"
-          >
-            {busy ? "Syncing…" : "Sync All Tracking"}
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-2">
+          {/* Sort buttons */}
+          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+            {([
+              { key: "newest", label: "Newest" },
+              { key: "oldest", label: "Oldest" },
+              { key: "amount-desc", label: "₹ High" },
+              { key: "amount-asc", label: "₹ Low" },
+            ] as { key: SortKey; label: string }[]).map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setSort(s.key)}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                  sort === s.key ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Sync all (when nothing selected) */}
+          {selected.size === 0 && (
+            <button
+              onClick={() => syncTracking()}
+              disabled={busy}
+              className="px-3 py-1.5 text-sm font-semibold text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg disabled:opacity-50 transition-colors"
+            >
+              {busy ? "Syncing…" : "Sync All Tracking"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}

@@ -28,8 +28,14 @@ type TT = { x: number; y: number; text: string } | null;
 
 function Tip({ tt }: { tt: TT }) {
   if (!tt) return null;
+  const flipLeft = typeof window !== "undefined" && tt.x > window.innerWidth - 220;
   return (
-    <div className="fixed z-[200] pointer-events-none" style={{ left: tt.x + 14, top: tt.y - 40 }}>
+    <div
+      className="fixed z-[200] pointer-events-none"
+      style={flipLeft
+        ? { right: window.innerWidth - tt.x + 8, top: tt.y - 40 }
+        : { left: tt.x + 14, top: tt.y - 40 }}
+    >
       <div className="bg-gray-950 text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg shadow-2xl whitespace-nowrap">
         {tt.text}
       </div>
@@ -371,28 +377,57 @@ const PERIODS: { key: Period; label: string }[] = [
   { key: "lifetime", label: "All Time" },
 ];
 
+const SUCCESSFUL = ["PAID", "PAID_DISPATCH_PENDING", "DISPATCHED", "DELIVERED", "RETURNED", "CANCELLED"];
+
+function isExpired(o: Order) {
+  return o.status === "PENDING" && Date.now() - new Date(o.createdAt).getTime() > 15 * 60 * 1000;
+}
+
 function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
   const o = filterOrders(orders, period);
-  const revenue = o.reduce((s, x) => s + x.amount, 0);
+
+  const successful = o.filter((x) => SUCCESSFUL.includes(x.status));
+  const expired = o.filter(isExpired);
+  const total = successful.length + expired.length;
+
+  const revenue = successful.reduce((s, x) => s + x.amount, 0);
   const paid = o.filter((x) => ["PAID", "PAID_DISPATCH_PENDING"].includes(x.status)).length;
   const dispatched = o.filter((x) => x.status === "DISPATCHED").length;
   const delivered = o.filter((x) => x.status === "DELIVERED").length;
 
-  const cards = [
-    { label: "Orders", value: o.length, sub: "placed", color: "bg-gray-900", track: "bg-gray-100" },
-    { label: "Revenue", value: `₹${revenue.toLocaleString("en-IN")}`, sub: "collected", color: "bg-emerald-500", track: "bg-emerald-50" },
-    { label: "Awaiting", value: paid, sub: "to dispatch", color: "bg-orange-400", track: "bg-orange-50" },
-    { label: "In Transit", value: dispatched, sub: "with courier", color: "bg-violet-500", track: "bg-violet-50" },
-    { label: "Delivered", value: delivered, sub: "completed", color: "bg-green-500", track: "bg-green-50" },
-  ];
+  const successPct = total === 0 ? 0 : Math.round((successful.length / total) * 100);
+  const expiredPct = total === 0 ? 0 : 100 - successPct;
 
-  const maxVal = Math.max(1, o.length);
+  const maxVal = Math.max(1, successful.length);
+
+  const metricCards = [
+    { label: "Revenue", value: `₹${revenue.toLocaleString("en-IN")}`, sub: "from paid orders", color: "bg-emerald-500", track: "bg-emerald-50", num: revenue },
+    { label: "Awaiting", value: paid, sub: "to dispatch", color: "bg-orange-400", track: "bg-orange-50", num: paid },
+    { label: "In Transit", value: dispatched, sub: "with courier", color: "bg-violet-500", track: "bg-violet-50", num: dispatched },
+    { label: "Delivered", value: delivered, sub: "completed", color: "bg-green-500", track: "bg-green-50", num: delivered },
+  ];
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-      {cards.map((c, i) => {
-        const numVal = typeof c.value === "number" ? c.value : 0;
-        const pct = i === 0 ? 100 : Math.round((numVal / maxVal) * 100);
+      {/* Orders card — split bar */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col gap-3">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Orders</p>
+        <p className="text-[26px] font-black leading-none text-gray-900">{successful.length}</p>
+        <div className="h-1 rounded-full bg-gray-100 overflow-hidden flex">
+          <div className="h-full bg-gray-900 transition-all duration-700 rounded-l-full" style={{ width: `${successPct}%` }} />
+          {expiredPct > 0 && (
+            <div className="h-full bg-gray-400 transition-all duration-700 rounded-r-full" style={{ width: `${expiredPct}%` }} />
+          )}
+        </div>
+        <p className="text-[10px] text-gray-400">
+          {successful.length} successful
+          {expired.length > 0 && <> · <span className="text-gray-400">{expired.length} expired</span></>}
+        </p>
+      </div>
+
+      {/* Metric cards */}
+      {metricCards.map((c) => {
+        const pct = Math.round((c.num / maxVal) * 100);
         return (
           <div key={c.label} className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col gap-3">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{c.label}</p>
@@ -448,6 +483,44 @@ function RecentOrders({ orders, period }: { orders: Order[]; period: Period }) {
   );
 }
 
+// ─── Expired Orders ───────────────────────────────────────────────────────────
+
+function ExpiredOrders({ orders }: { orders: Order[] }) {
+  const expired = orders
+    .filter(isExpired)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  if (expired.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h2 className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Expired Orders</h2>
+          <span className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-0.5 rounded-full">{expired.length}</span>
+        </div>
+        <span className="text-[11px] text-gray-400">PENDING &gt; 15 min</span>
+      </div>
+      <div className="divide-y divide-gray-50">
+        {expired.map((o) => {
+          const age = Date.now() - new Date(o.createdAt).getTime();
+          const mins = Math.floor(age / 60000);
+          const ageLabel = mins < 60 ? `${mins}m ago` : `${Math.floor(mins / 60)}h ${mins % 60}m ago`;
+          return (
+            <div key={o.id} className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50/60 transition-colors">
+              <span className="text-[10px] font-bold text-gray-300 tabular-nums w-6 shrink-0">#{o.orderNumber}</span>
+              <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-gray-300" />
+              <span className="font-mono text-xs font-bold text-gray-700 flex-1 truncate">{o.orderRef}</span>
+              <span className="text-[10px] text-gray-400 tabular-nums shrink-0">{ageLabel}</span>
+              <span className="text-sm font-black text-gray-400 shrink-0">₹{o.amount.toLocaleString("en-IN")}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export default function AdminHome() {
@@ -491,6 +564,7 @@ export default function AdminHome() {
           <GitHubHeatmap orders={orders} />
           <PatternTabs orders={orders} />
           <RecentOrders orders={orders} period={period} />
+          <ExpiredOrders orders={orders} />
         </div>
       )}
     </div>
