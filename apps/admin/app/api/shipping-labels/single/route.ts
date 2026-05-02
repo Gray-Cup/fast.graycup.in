@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   }
 
   const res = await fetch(
-    `${BASE_URL}/api/p/packing_slip?wbns=${encodeURIComponent(waybill)}&pdf=true&pdf_size=4R`,
+    `${BASE_URL}/api/p/packing_slip?wbns=${encodeURIComponent(waybill)}&pdf_size=4R`,
     { headers: { Authorization: `Token ${DELHIVERY_TOKEN}`, "Content-Type": "application/json" } }
   );
 
@@ -26,19 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Delhivery ${res.status}: ${text.slice(0, 200)}` }, { status: 502 });
   }
 
-  const data = await res.json();
-  const pdfUrl: string | undefined = data?.packages?.[0]?.pdf_download_link;
-
-  if (!pdfUrl) {
-    return NextResponse.json({ error: `No label URL in response: ${JSON.stringify(data).slice(0, 200)}` }, { status: 502 });
-  }
-
-  const pdf = await fetch(pdfUrl);
-  if (!pdf.ok) {
-    return NextResponse.json({ error: `Failed to fetch label: ${pdf.status}` }, { status: 502 });
-  }
-
-  return new Response(await pdf.arrayBuffer(), {
+  return new Response(res.body, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${waybill}.pdf"`,

@@ -334,7 +334,7 @@ function LabelDownloadModal({ progress }: { progress: LabelProgress }) {
 
         {progress.phase === "downloading" && (
           <p className="text-xs text-gray-400 text-center">
-            Fetching label {progress.done + 1} of {progress.total} from Delhivery…
+            Fetching label {progress.done} of {progress.total} from Delhivery…
           </p>
         )}
         {progress.phase === "zipping" && (
