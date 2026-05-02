@@ -26,6 +26,7 @@ type Filter = "all" | "unfulfilled" | "dispatched" | "delivered";
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
+  EXPIRED: "bg-gray-100 text-gray-500",
   PAID: "bg-blue-100 text-blue-800",
   PAID_DISPATCH_PENDING: "bg-orange-100 text-orange-800",
   DISPATCHED: "bg-purple-100 text-purple-800",
@@ -33,6 +34,13 @@ const STATUS_COLORS: Record<string, string> = {
   RETURNED: "bg-red-100 text-red-700",
   CANCELLED: "bg-gray-200 text-gray-600",
 };
+
+function displayStatus(status: string, createdAt: string) {
+  if (status === "PENDING" && Date.now() - new Date(createdAt).getTime() > 15 * 60 * 1000) {
+    return "EXPIRED";
+  }
+  return status;
+}
 
 // ─── Order Detail Modal ──────────────────────────────────────────────────────
 
@@ -56,9 +64,11 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
         <div className="px-6 py-5 flex flex-col gap-5">
           <div className="flex items-center gap-3">
-            <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${STATUS_COLORS[order.status] || "bg-gray-100 text-gray-600"}`}>
-              {order.status}
-            </span>
+            {(() => { const ds = displayStatus(order.status, order.createdAt); return (
+              <span className={`text-xs font-semibold px-3 py-1.5 rounded-full ${STATUS_COLORS[ds] || "bg-gray-100 text-gray-600"}`}>
+                {ds}
+              </span>
+            ); })()}
             <span className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString("en-IN")}</span>
           </div>
 
@@ -196,7 +206,7 @@ function RowActions({
             </button>
           )}
 
-          {order.status === "PENDING" && (
+          {order.status === "PENDING" && displayStatus(order.status, order.createdAt) !== "EXPIRED" && (
             <button
               onClick={() => { onVerifyPayment(); setOpen(false); }}
               disabled={busy}
@@ -575,9 +585,11 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-4 py-3 text-right font-bold">₹{o.amount}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[o.status] || "bg-gray-100 text-gray-600"}`}>
-                      {o.status}
-                    </span>
+                    {(() => { const ds = displayStatus(o.status, o.createdAt); return (
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${STATUS_COLORS[ds] || "bg-gray-100 text-gray-600"}`}>
+                        {ds}
+                      </span>
+                    ); })()}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">{o.delhiveryWaybill || "—"}</td>
                   <td className="px-4 py-3 text-xs text-gray-400">
