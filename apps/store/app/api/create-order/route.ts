@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, generateOrderRef } from "@/lib/db";
-import { orders } from "@/lib/db/schema";
-import { getPincodeDetails } from "@/lib/delhivery";
+import { generateOrderRef } from "@/lib/db";
 
 const GST_RATE = 0.05;
 
@@ -56,7 +54,7 @@ export async function POST(req: NextRequest) {
 
     if (!appId || !secretKey) {
       return NextResponse.json(
-        { error: "Cashfree credentials not configured. See .env.local.example" },
+        { error: "Cashfree credentials not configured" },
         { status: 500 }
       );
     }
@@ -69,25 +67,6 @@ export async function POST(req: NextRequest) {
         ? "https://api.cashfree.com/pg"
         : "https://sandbox.cashfree.com/pg";
 
-    const pincodeInfo = await getPincodeDetails(customer.pincode).catch(() => null);
-
-    const cashfreePayload = {
-      order_id: orderRef,
-      order_amount: amount,
-      order_currency: "INR",
-      customer_details: {
-        customer_id: customer.phone,
-        customer_phone: customer.phone,
-        customer_name: customer.name,
-        ...(customer.email ? { customer_email: customer.email } : {}),
-      },
-      order_meta: {
-        return_url: `${baseUrl}/success?order_id=${orderRef}&product=${encodeURIComponent(productName)}&variant=${encodeURIComponent(variantLabel)}&qty=${quantity}&amount=${amount}`,
-        notify_url: `${baseUrl}/api/cashfree-webhook`,
-      },
-      order_note: `${productName} ${variantLabel} ×${quantity} | ${customer.address}, ${customer.pincode}`,
-    };
-
     const cfRes = await fetch(`${apiBase}/orders`, {
       method: "POST",
       headers: {
@@ -96,7 +75,33 @@ export async function POST(req: NextRequest) {
         "x-client-secret": secretKey,
         "x-api-version": "2023-08-01",
       },
-      body: JSON.stringify(cashfreePayload),
+      body: JSON.stringify({
+        order_id: orderRef,
+        order_amount: amount,
+        order_currency: "INR",
+        customer_details: {
+          customer_id: customer.phone,
+          customer_phone: customer.phone,
+          customer_name: customer.name,
+          ...(customer.email ? { customer_email: customer.email } : {}),
+        },
+        order_meta: {
+          return_url: `${baseUrl}/success?order_id=${orderRef}&product=${encodeURIComponent(productName)}&variant=${encodeURIComponent(variantLabel)}&qty=${quantity}&amount=${amount}`,
+          notify_url: `${baseUrl}/api/cashfree-webhook`,
+        },
+        order_note: `${productName} | ${customer.address}, ${customer.pincode}`,
+        // All data needed to create the DB row after payment confirmation
+        order_tags: {
+          productId,
+          productName,
+          variantLabel,
+          quantity: String(quantity),
+          gstAmount: String(gstAmt),
+          batchId: batchId ?? "",
+          customerAddress: customer.address,
+          customerPincode: customer.pincode,
+        },
+      }),
     });
 
     if (!cfRes.ok) {
@@ -109,24 +114,6 @@ export async function POST(req: NextRequest) {
     }
 
     const cfData = await cfRes.json();
-
-    await db.insert(orders).values({
-      orderRef,
-      cashfreeOrderId: cfData.cf_order_id || orderRef,
-      productId,
-      productName,
-      variantLabel,
-      quantity,
-      amount,
-      gstAmount: gstAmt,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      customerEmail: customer.email || null,
-      customerAddress: customer.address + (pincodeInfo ? `, ${pincodeInfo.city}` : ""),
-      customerPincode: customer.pincode,
-      batchId,
-      status: "PENDING",
-    });
 
     return NextResponse.json({
       orderRef,
