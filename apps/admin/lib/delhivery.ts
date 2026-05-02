@@ -227,6 +227,42 @@ export async function getShippingLabels(waybills: string[]): Promise<{ pdf: Arra
   }
 }
 
+export async function triggerPickup(expectedCount: number): Promise<{ success: boolean; pickupId?: string; error?: string }> {
+  if (!DELHIVERY_TOKEN) return { success: false, error: "DELHIVERY_API_TOKEN not configured" };
+
+  const pickupLocation = process.env.DELHIVERY_PICKUP_NAME || "Gray Cup Pickup";
+  const now = new Date();
+  const pickupDate = now.toISOString().slice(0, 10);
+  // Default to 17:00 same day; override via DELHIVERY_PICKUP_TIME env var
+  const pickupTime = process.env.DELHIVERY_PICKUP_TIME || "17:00:00";
+
+  try {
+    const res = await fetch(`${BASE_URL}/fm/request/new/`, {
+      method: "POST",
+      headers: {
+        Authorization: `Token ${DELHIVERY_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        pickup_location: pickupLocation,
+        pickup_time: pickupTime,
+        pickup_date: pickupDate,
+        expected_package_count: expectedCount,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (data?.pickup_id || data?.id) {
+      return { success: true, pickupId: String(data.pickup_id ?? data.id) };
+    }
+
+    return { success: false, error: data?.error || data?.message || JSON.stringify(data).slice(0, 200) };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
 export async function cancelShipment(waybill: string): Promise<{ success: boolean; error?: string }> {
   if (!DELHIVERY_TOKEN) return { success: false, error: "DELHIVERY_API_TOKEN not configured" };
   try {

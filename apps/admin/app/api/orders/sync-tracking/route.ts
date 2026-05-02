@@ -1,38 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@graycup/db";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { trackMultipleShipments, mapDelhiveryStatus } from "@/lib/delhivery";
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { orderRefs } = body as { orderRefs?: string[] };
 
-  // Fetch orders that have a waybill — either the specified ones or all DISPATCHED orders
-  let orders;
-  if (orderRefs && orderRefs.length > 0) {
-    orders = await db
-      .select()
-      .from(schema.orders)
-      .where(inArray(schema.orders.orderRef, orderRefs));
-  } else {
-    orders = await db
-      .select()
-      .from(schema.orders)
-      .where(eq(schema.orders.status, "DISPATCHED"));
-  }
+  // Only sync DISPATCHED orders that have a waybill.
+  // Skips: no waybill, DELIVERED, RETURNED, CANCELLED, PAID*, PENDING.
+  const conditions = [
+    eq(schema.orders.status, "DISPATCHED"),
+    isNotNull(schema.orders.delhiveryWaybill),
+    ...(orderRefs?.length ? [inArray(schema.orders.orderRef, orderRefs)] : []),
+  ];
 
-  const withWaybill = orders.filter((o) => o.delhiveryWaybill);
+  const orders = await db
+    .select()
+    .from(schema.orders)
+    .where(and(...conditions));
 
-  if (withWaybill.length === 0) {
+  if (orders.length === 0) {
     return NextResponse.json({ message: "No in-transit orders to sync" });
   }
 
-  const waybills = withWaybill.map((o) => o.delhiveryWaybill!);
+  const waybills = orders.map((o) => o.delhiveryWaybill!);
   const tracking = await trackMultipleShipments(waybills);
 
   let updated = 0;
 
-  for (const order of withWaybill) {
+  for (const order of orders) {
     const info = tracking[order.delhiveryWaybill!];
     if (!info) continue;
 
@@ -47,8 +44,8 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    message: `Synced ${withWaybill.length} order(s), ${updated} status update(s)`,
-    checked: withWaybill.length,
+    message: `${updated > 0 ? `${updated} updated` : "No changes"} — checked ${orders.length} in-transit order${orders.length !== 1 ? "s" : ""}`,
+    checked: orders.length,
     updated,
   });
 }

@@ -446,6 +446,21 @@ export default function OrdersPage() {
     setBusy(false);
   };
 
+  const triggerPickup = async () => {
+    if (selectedWithWaybill.length === 0) { showToast("error", "Select orders with waybills first"); return; }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/orders/trigger-pickup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderRefs: selectedWithWaybill }),
+      });
+      const data = await res.json();
+      showToast(data.success ? "success" : "error", data.message || data.error || "Done");
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
   const downloadLabels = async () => {
     if (selectedWithWaybill.length === 0) { showToast("error", "Select orders with waybills first"); return; }
 
@@ -614,6 +629,16 @@ export default function OrdersPage() {
                 className="px-3 py-1.5 text-sm font-semibold bg-stone-800 hover:bg-stone-900 text-white rounded-lg disabled:opacity-50 transition-colors"
               >
                 Shipping Labels ({selectedWithWaybill.length})
+              </button>
+            )}
+
+            {selectedWithWaybill.length > 0 && (
+              <button
+                onClick={triggerPickup}
+                disabled={busy}
+                className="px-3 py-1.5 text-sm font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+              >
+                Trigger Pickup ({selectedWithWaybill.length})
               </button>
             )}
 
