@@ -171,6 +171,49 @@ export function mapDelhiveryStatus(statusType: string): string | null {
   }
 }
 
+export async function getShippingLabels(waybills: string[]): Promise<{ pdf: ArrayBuffer } | { error: string }> {
+  if (!DELHIVERY_TOKEN) return { error: "DELHIVERY_API_TOKEN not configured" };
+  try {
+    const wbns = waybills.join(",");
+    const res = await fetch(
+      `${BASE_URL}/api/p/packing_slip?wbns=${wbns}&pdf=true&pdf_size=A4`,
+      { headers: { Authorization: `Token ${DELHIVERY_TOKEN}`, "Content-Type": "application/json" } }
+    );
+    if (!res.ok) {
+      const text = await res.text();
+      return { error: `Delhivery returned ${res.status}: ${text.slice(0, 200)}` };
+    }
+
+    const contentType = res.headers.get("content-type") ?? "";
+
+    // pdf=true returns JSON with an S3 link, not a direct PDF stream
+    if (contentType.includes("application/json") || contentType.includes("text/")) {
+      const data = await res.json();
+      // Delhivery returns the S3 URL in one of these fields
+      const s3Url: string | undefined =
+        data?.pdf_download_link ??
+        data?.url ??
+        data?.link ??
+        (typeof data === "string" && data.startsWith("http") ? data : undefined);
+
+      if (!s3Url) {
+        return { error: `Unexpected Delhivery response: ${JSON.stringify(data).slice(0, 300)}` };
+      }
+
+      const pdfRes = await fetch(s3Url);
+      if (!pdfRes.ok) return { error: `Failed to fetch label from S3: ${pdfRes.status}` };
+      const pdf = await pdfRes.arrayBuffer();
+      return { pdf };
+    }
+
+    // Direct PDF stream (fallback)
+    const pdf = await res.arrayBuffer();
+    return { pdf };
+  } catch (err) {
+    return { error: String(err) };
+  }
+}
+
 export async function cancelShipment(waybill: string): Promise<{ success: boolean; error?: string }> {
   if (!DELHIVERY_TOKEN) return { success: false, error: "DELHIVERY_API_TOKEN not configured" };
   try {

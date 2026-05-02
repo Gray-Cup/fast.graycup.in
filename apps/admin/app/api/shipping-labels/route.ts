@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@graycup/db";
 import { inArray } from "drizzle-orm";
-import { generateShippingLabelPdf } from "@/lib/invoice";
+import { getShippingLabels } from "@/lib/delhivery";
 
 export async function POST(req: NextRequest) {
   const { orderRefs } = await req.json();
@@ -15,33 +15,24 @@ export async function POST(req: NextRequest) {
     .from(schema.orders)
     .where(inArray(schema.orders.orderRef, orderRefs));
 
-  const withWaybill = orders.filter((o) => o.delhiveryWaybill);
+  const waybills = orders
+    .filter((o) => o.delhiveryWaybill)
+    .map((o) => o.delhiveryWaybill!);
 
-  if (withWaybill.length === 0) {
+  if (waybills.length === 0) {
     return NextResponse.json({ error: "None of the selected orders have a waybill" }, { status: 400 });
   }
 
-  const labels = withWaybill.map((o) => ({
-    orderRef: o.orderRef,
-    waybill: o.delhiveryWaybill!,
-    customerName: o.customerName,
-    customerPhone: o.customerPhone,
-    customerAddress: o.customerAddress,
-    customerPincode: o.customerPincode,
-    productDesc: `${o.productName} ${o.variantLabel} ×${o.quantity}`,
-    amount: o.amount,
-  }));
+  const result = await getShippingLabels(waybills);
 
-  try {
-    const pdf = await generateShippingLabelPdf(labels);
-    return new Response(new Uint8Array(pdf), {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="shipping-labels.pdf"`,
-      },
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
-    return NextResponse.json({ error: "PDF generation failed", detail: msg }, { status: 500 });
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: 502 });
   }
+
+  return new Response(result.pdf, {
+    headers: {
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename="shipping-labels.pdf"`,
+    },
+  });
 }
