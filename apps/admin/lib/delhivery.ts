@@ -207,17 +207,44 @@ export async function getShippingLabels(waybills: string[]): Promise<{ pdf: Arra
         })
       );
 
-      if (pdfBuffers.length === 1) return { pdf: pdfBuffers[0] };
+      // Reframe every label page: crop to content box, place with 30pt padding
+      const { PDFDocument, PDFName, PDFArray, PDFNumber } = await import("pdf-lib");
+      const PADDING = 30;
 
-      // Merge multiple PDFs into one (concatenate pages)
-      const { PDFDocument } = await import("pdf-lib");
-      const merged = await PDFDocument.create();
+      const getContentBox = (page: import("pdf-lib").PDFPage) => {
+        const mb = page.getMediaBox();
+        for (const name of ["TrimBox", "CropBox", "ArtBox"]) {
+          try {
+            const arr = page.node.lookupMaybe(PDFName.of(name), PDFArray);
+            if (arr && arr.size() === 4) {
+              const left = (arr.lookup(0) as typeof PDFNumber.prototype).asNumber();
+              const bottom = (arr.lookup(1) as typeof PDFNumber.prototype).asNumber();
+              const right = (arr.lookup(2) as typeof PDFNumber.prototype).asNumber();
+              const top = (arr.lookup(3) as typeof PDFNumber.prototype).asNumber();
+              const w = right - left, h = top - bottom;
+              if (w > 0 && h > 0 && (w < mb.width * 0.99 || h < mb.height * 0.99)) {
+                return { left, bottom, right, top, width: w, height: h };
+              }
+            }
+          } catch {}
+        }
+        return { left: mb.x, bottom: mb.y, right: mb.x + mb.width, top: mb.y + mb.height, width: mb.width, height: mb.height };
+      };
+
+      const output = await PDFDocument.create();
       for (const buf of pdfBuffers) {
         const src = await PDFDocument.load(buf);
-        const pages = await merged.copyPages(src, src.getPageIndices());
-        for (const page of pages) merged.addPage(page);
+        for (let i = 0; i < src.getPageCount(); i++) {
+          const srcPage = src.getPage(i);
+          const box = getContentBox(srcPage);
+          const [embedded] = await output.embedPages([srcPage], [{ left: box.left, bottom: box.bottom, right: box.right, top: box.top }]);
+          const outW = box.width + PADDING * 2;
+          const outH = box.height + PADDING * 2;
+          const outPage = output.addPage([outW, outH]);
+          outPage.drawPage(embedded, { x: PADDING, y: PADDING, width: box.width, height: box.height });
+        }
       }
-      const mergedBytes = await merged.save();
+      const mergedBytes = await output.save();
       return { pdf: mergedBytes.buffer as ArrayBuffer };
     }
 

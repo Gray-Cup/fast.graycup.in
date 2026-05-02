@@ -37,24 +37,24 @@ export default function LabelMergePage() {
   const clearAll = () => setFiles([]);
 
   // Returns the tightest box available: TrimBox → CropBox → ArtBox → MediaBox
-  const getContentBox = (page: PDFPage): { x: number; y: number; width: number; height: number } => {
+  const getContentBox = (page: PDFPage) => {
     const mb = page.getMediaBox();
     for (const name of ["TrimBox", "CropBox", "ArtBox"]) {
       try {
         const arr = page.node.lookupMaybe(PDFName.of(name), PDFArray);
         if (arr && arr.size() === 4) {
-          const l = (arr.lookup(0) as PDFNumber).asNumber();
-          const b = (arr.lookup(1) as PDFNumber).asNumber();
-          const r = (arr.lookup(2) as PDFNumber).asNumber();
-          const t = (arr.lookup(3) as PDFNumber).asNumber();
-          const w = r - l, h = t - b;
+          const left = (arr.lookup(0) as PDFNumber).asNumber();
+          const bottom = (arr.lookup(1) as PDFNumber).asNumber();
+          const right = (arr.lookup(2) as PDFNumber).asNumber();
+          const top = (arr.lookup(3) as PDFNumber).asNumber();
+          const w = right - left, h = top - bottom;
           if (w > 0 && h > 0 && (w < mb.width * 0.99 || h < mb.height * 0.99)) {
-            return { x: l, y: b, width: w, height: h };
+            return { left, bottom, right, top, width: w, height: h };
           }
         }
       } catch {}
     }
-    return { x: mb.x, y: mb.y, width: mb.width, height: mb.height };
+    return { left: mb.x, bottom: mb.y, right: mb.x + mb.width, top: mb.y + mb.height, width: mb.width, height: mb.height };
   };
 
   const merge = async () => {
@@ -95,7 +95,7 @@ export default function LabelMergePage() {
           const freshPage = freshDoc.getPage(pageIdx);
           const contentBox = getContentBox(freshPage);
 
-          const [embedded] = await output.embedPages([freshPage], [contentBox]);
+          const [embedded] = await output.embedPages([freshPage], [{ left: contentBox.left, bottom: contentBox.bottom, right: contentBox.right, top: contentBox.top }]);
 
           const col = j % cols;
           const row = Math.floor(j / cols);
