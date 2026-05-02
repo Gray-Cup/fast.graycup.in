@@ -190,14 +190,28 @@ function GitHubHeatmap({ orders }: { orders: Order[] }) {
   );
 }
 
+// ─── Tooltip text helper ──────────────────────────────────────────────────────
+
+function orderLabel(total: number, expired: number): string {
+  const succ = total - expired;
+  const parts: string[] = [];
+  if (succ > 0) parts.push(`${succ} order${succ !== 1 ? "s" : ""}`);
+  if (expired > 0) parts.push(`${expired} expired`);
+  return parts.length ? parts.join(" · ") : "0 orders";
+}
+
 // ─── Hour × weekday heatmap ───────────────────────────────────────────────────
 
 function HourHeatmap({ orders }: { orders: Order[] }) {
   const [tt, setTt] = useState<TT>(null);
   const grid: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
+  const expiredGrid: number[][] = Array.from({ length: 7 }, () => new Array(24).fill(0));
   orders.forEach((o) => {
     const d = new Date(o.createdAt);
-    grid[(d.getDay() + 6) % 7][d.getHours()]++;
+    const di = (d.getDay() + 6) % 7;
+    const hi = d.getHours();
+    grid[di][hi]++;
+    if (isExpired(o)) expiredGrid[di][hi]++;
   });
   const max = Math.max(1, ...grid.flat());
   const fmtH = (h: number) => h === 0 ? "12am" : h < 12 ? `${h}am` : h === 12 ? "12pm" : `${h - 12}pm`;
@@ -219,7 +233,7 @@ function HourHeatmap({ orders }: { orders: Order[] }) {
               key={hi}
               className="flex-1 rounded-[2px]"
               style={{ height: 24, backgroundColor: heatColor(count, max) }}
-              {...ttOn(setTt, `${DAYS[di]} ${fmtH(hi)} · ${count} order${count !== 1 ? "s" : ""}`)}
+              {...ttOn(setTt, `${DAYS[di]} ${fmtH(hi)} · ${orderLabel(count, expiredGrid[di][hi])}`)}
             />
           ))}
         </div>
@@ -234,6 +248,7 @@ function HourHeatmap({ orders }: { orders: Order[] }) {
 function WeekdayHeatmap({ orders }: { orders: Order[] }) {
   const [tt, setTt] = useState<TT>(null);
   const weekMap = new Map<string, number[]>();
+  const expiredWeekMap = new Map<string, number[]>();
   orders.forEach((o) => {
     const d = new Date(o.createdAt);
     const di = (d.getDay() + 6) % 7;
@@ -241,12 +256,16 @@ function WeekdayHeatmap({ orders }: { orders: Order[] }) {
     const k = `${mon.getFullYear()}-${String(mon.getMonth() + 1).padStart(2, "0")}-${String(mon.getDate()).padStart(2, "0")}`;
     if (!weekMap.has(k)) weekMap.set(k, new Array(7).fill(0));
     weekMap.get(k)![di]++;
+    if (isExpired(o)) {
+      if (!expiredWeekMap.has(k)) expiredWeekMap.set(k, new Array(7).fill(0));
+      expiredWeekMap.get(k)![di]++;
+    }
   });
 
   const weeks = Array.from(weekMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .slice(-24)
-    .map(([k, counts]) => ({ start: new Date(k + "T00:00:00"), counts }));
+    .map(([k, counts]) => ({ start: new Date(k + "T00:00:00"), counts, expiredCounts: expiredWeekMap.get(k) ?? new Array(7).fill(0) }));
 
   const max = Math.max(1, ...weeks.flatMap((w) => w.counts));
 
@@ -271,7 +290,7 @@ function WeekdayHeatmap({ orders }: { orders: Order[] }) {
                 className="flex-1 rounded-[2px]"
                 style={{ height: 18, backgroundColor: heatColor(count, max) }}
                 {...ttOn(setTt,
-                  `${day.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} · ${count} order${count !== 1 ? "s" : ""}`
+                  `${day.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} · ${orderLabel(count, week.expiredCounts[di])}`
                 )}
               />
             );
@@ -293,6 +312,7 @@ function MonthWeekHeatmap({ orders }: { orders: Order[] }) {
     new Date(now.getFullYear(), now.getMonth() - (11 - i), 1)
   );
   const grid: number[][] = Array.from({ length: 12 }, () => new Array(4).fill(0));
+  const expiredGrid: number[][] = Array.from({ length: 12 }, () => new Array(4).fill(0));
 
   orders.forEach((o) => {
     const d = new Date(o.createdAt);
@@ -301,6 +321,7 @@ function MonthWeekHeatmap({ orders }: { orders: Order[] }) {
     const col = 11 - monthsAgo;
     const row = Math.min(3, Math.floor((d.getDate() - 1) / 7));
     grid[col][row]++;
+    if (isExpired(o)) expiredGrid[col][row]++;
   });
 
   const max = Math.max(1, ...grid.flat());
@@ -326,7 +347,7 @@ function MonthWeekHeatmap({ orders }: { orders: Order[] }) {
                 className="flex-1 rounded-[2px]"
                 style={{ height: 30, backgroundColor: heatColor(count, max) }}
                 {...ttOn(setTt,
-                  `${label} · ${m.toLocaleString("default", { month: "long", year: "numeric" })} · ${count} order${count !== 1 ? "s" : ""}`
+                  `${label} · ${m.toLocaleString("default", { month: "long", year: "numeric" })} · ${orderLabel(count, expiredGrid[mi][wi])}`
                 )}
               />
             );
@@ -417,7 +438,7 @@ function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
       {/* Orders card — split bar */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col gap-3">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Orders</p>
@@ -429,8 +450,7 @@ function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
           )}
         </div>
         <p className="text-[10px] text-gray-400">
-          {successful.length} successful
-          {expired.length > 0 && <> · <span className="text-gray-400">{expired.length} expired</span></>}
+          {successful.length} successful · {expired.length} expired
         </p>
       </div>
 
@@ -448,6 +468,16 @@ function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
           </div>
         );
       })}
+
+      {/* Success rate card */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col gap-3">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Success Rate</p>
+        <p className="text-[26px] font-black leading-none text-gray-900">{successPct}%</p>
+        <div className="h-1 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-full rounded-full bg-teal-500 transition-all duration-700" style={{ width: `${successPct}%` }} />
+        </div>
+        <p className="text-[10px] text-gray-400">{successful.length} of {total} placed</p>
+      </div>
     </div>
   );
 }
