@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { zipSync } from "fflate";
 
 type Order = {
   id: number;
@@ -269,6 +270,74 @@ function RowActions({
   );
 }
 
+// ─── Label Download Progress ─────────────────────────────────────────────────
+
+type LabelProgress =
+  | { phase: "downloading"; done: number; total: number }
+  | { phase: "zipping" }
+  | { phase: "done" }
+  | { phase: "error"; message: string };
+
+function LabelDownloadModal({ progress }: { progress: LabelProgress }) {
+  const pct =
+    progress.phase === "downloading"
+      ? Math.round((progress.done / progress.total) * 100)
+      : progress.phase === "zipping"
+      ? 100
+      : progress.phase === "done"
+      ? 100
+      : 0;
+
+  const label =
+    progress.phase === "downloading"
+      ? `Downloading ${progress.done}/${progress.total}`
+      : progress.phase === "zipping"
+      ? "Zipping…"
+      : progress.phase === "done"
+      ? "Done!"
+      : `Error: ${progress.message}`;
+
+  const isError = progress.phase === "error";
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-4">
+        <h2 className="text-base font-black text-gray-900">Delhivery Labels</h2>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex justify-between text-sm font-semibold text-gray-700">
+            <span>{label}</span>
+            {!isError && <span className="tabular-nums">{pct}%</span>}
+          </div>
+          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                isError ? "bg-red-500" : progress.phase === "done" ? "bg-green-500" : "bg-stone-800"
+              }`}
+              style={{ width: `${isError ? 100 : pct}%` }}
+            />
+          </div>
+        </div>
+
+        {progress.phase === "downloading" && (
+          <p className="text-xs text-gray-400 text-center">
+            Fetching label {progress.done + 1} of {progress.total} from Delhivery…
+          </p>
+        )}
+        {progress.phase === "zipping" && (
+          <p className="text-xs text-gray-400 text-center">Packaging into zip file…</p>
+        )}
+        {progress.phase === "done" && (
+          <p className="text-xs text-green-600 text-center font-semibold">Labels downloaded successfully.</p>
+        )}
+        {isError && (
+          <p className="text-xs text-red-600 text-center">{progress.message}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Toast ───────────────────────────────────────────────────────────────────
 
 function Toast({ type, msg }: { type: "success" | "error"; msg: string }) {
@@ -298,6 +367,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const [labelProgress, setLabelProgress] = useState<LabelProgress | null>(null);
 
   const loadOrders = useCallback(() => {
     setLoading(true);
@@ -378,27 +448,60 @@ export default function OrdersPage() {
 
   const downloadLabels = async () => {
     if (selectedWithWaybill.length === 0) { showToast("error", "Select orders with waybills first"); return; }
+
+    const waybills = selectedWithWaybill
+      .map((ref) => orders.find((o) => o.orderRef === ref)?.delhiveryWaybill)
+      .filter((w): w is string => !!w);
+
+    if (waybills.length === 0) { showToast("error", "No waybills found for selected orders"); return; }
+
     setBusy(true);
+    setLabelProgress({ phase: "downloading", done: 0, total: waybills.length });
+
     try {
-      const res = await fetch("/api/shipping-labels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderRefs: selectedWithWaybill }),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        showToast("error", errData.detail ? errData.detail.split("\n")[0] : (errData.error || "Failed to generate labels"));
-        setBusy(false);
-        return;
+      const files: Record<string, Uint8Array> = {};
+
+      for (let i = 0; i < waybills.length; i++) {
+        const waybill = waybills[i];
+        setLabelProgress({ phase: "downloading", done: i, total: waybills.length });
+
+        const res = await fetch("/api/shipping-labels/single", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ waybill }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          setLabelProgress({ phase: "error", message: errData.error || `Failed for waybill ${waybill}` });
+          setTimeout(() => setLabelProgress(null), 3000);
+          setBusy(false);
+          return;
+        }
+
+        const buf = await res.arrayBuffer();
+        files[`${waybill}.pdf`] = new Uint8Array(buf);
       }
-      const blob = await res.blob();
+
+      setLabelProgress({ phase: "zipping" });
+      await new Promise((r) => setTimeout(r, 100)); // let UI update
+
+      const zipped = zipSync(files, { level: 0 }); // level 0 = store only, PDFs don't compress
+      const blob = new Blob([zipped.buffer as ArrayBuffer], { type: "application/zip" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "shipping-labels.pdf";
+      a.download = `delhivery-labels-${new Date().toISOString().slice(0, 10)}.zip`;
       a.click();
       URL.revokeObjectURL(url);
-    } catch { showToast("error", "Download failed"); }
+
+      setLabelProgress({ phase: "done" });
+      setTimeout(() => setLabelProgress(null), 2000);
+    } catch (err) {
+      setLabelProgress({ phase: "error", message: String(err) });
+      setTimeout(() => setLabelProgress(null), 3000);
+    }
+
     setBusy(false);
   };
 
@@ -465,6 +568,7 @@ export default function OrdersPage() {
   return (
     <div className="flex flex-col h-full gap-3">
       {toast && <Toast type={toast.type} msg={toast.msg} />}
+      {labelProgress && <LabelDownloadModal progress={labelProgress} />}
 
       {/* Toolbar */}
       <div className="shrink-0 flex flex-wrap items-center gap-3">
