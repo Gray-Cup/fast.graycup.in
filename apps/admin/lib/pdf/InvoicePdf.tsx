@@ -45,6 +45,7 @@ const s = StyleSheet.create({
 });
 
 export interface InvoiceData {
+  orderNumber: number;
   invoiceNumber: string;
   orderRef: string;
   date: string;
@@ -79,6 +80,7 @@ export function InvoicePdf({ data }: { data: InvoiceData }) {
           <View style={s.hRight}>
             <Text style={s.taxLabel}>TAX INVOICE</Text>
             <Text style={s.invNum}>{data.invoiceNumber}</Text>
+            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: c.dark, marginBottom: 2 }}>Order #{data.orderNumber}</Text>
             <Text style={s.invSmall}>{data.orderRef}</Text>
             <Text style={s.invSmall}>{data.date}</Text>
           </View>

@@ -2,6 +2,7 @@ import PDFDocument from "pdfkit";
 import { Writable } from "stream";
 
 interface InvoiceData {
+  orderNumber?: number;
   invoiceNumber: string;
   orderRef: string;
   date: string;
@@ -35,9 +36,16 @@ export async function generateInvoicePdf(d: InvoiceData): Promise<Buffer> {
     const endX = doc.page.width - 50;
 
     doc.fontSize(20).font("Helvetica-Bold").fillColor(black).text("Invoice", startX, doc.y);
-    doc.fontSize(10).fillColor(gray).text(`Invoice #: ${d.invoiceNumber}`, startX, doc.y + 22);
-    doc.fontSize(10).fillColor(gray).text(`Order: ${d.orderRef}`, startX, doc.y + 36);
-    doc.fontSize(10).fillColor(gray).text(d.date, startX, doc.y + 50);
+    if (d.orderNumber) {
+      doc.fontSize(10).fillColor(gray).text(`Order #${d.orderNumber}`, startX, doc.y + 22);
+      doc.fontSize(10).fillColor(gray).text(`Invoice #: ${d.invoiceNumber}`, startX, doc.y + 36);
+      doc.fontSize(10).fillColor(gray).text(`Ref: ${d.orderRef}`, startX, doc.y + 50);
+      doc.fontSize(10).fillColor(gray).text(d.date, startX, doc.y + 64);
+    } else {
+      doc.fontSize(10).fillColor(gray).text(`Invoice #: ${d.invoiceNumber}`, startX, doc.y + 22);
+      doc.fontSize(10).fillColor(gray).text(`Order: ${d.orderRef}`, startX, doc.y + 36);
+      doc.fontSize(10).fillColor(gray).text(d.date, startX, doc.y + 50);
+    }
 
     let y = doc.y + 20;
     doc.fontSize(9).fillColor(lightGray).text("BILL TO", startX, y);

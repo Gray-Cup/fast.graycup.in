@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
       );
     } else {
       const invoiceData = orders.map((o) => ({
+        orderNumber: o.id,
         invoiceNumber: o.invoiceNumber ?? "—",
         orderRef: o.orderRef,
         date: o.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),

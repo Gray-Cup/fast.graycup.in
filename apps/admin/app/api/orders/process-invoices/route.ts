@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       const pdf = await renderToBuffer(
         React.createElement(InvoicePdf, {
           data: {
+            orderNumber: o.id,
             invoiceNumber,
             orderRef: o.orderRef,
             date,

@@ -26,6 +26,7 @@ export async function GET(
   const pdf = await renderToBuffer(
     React.createElement(InvoicePdf, {
       data: {
+        orderNumber: o.id,
         invoiceNumber: o.invoiceNumber ?? "—",
         orderRef: o.orderRef,
         date: o.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),

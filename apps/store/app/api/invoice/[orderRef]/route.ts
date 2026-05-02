@@ -54,6 +54,7 @@ export async function GET(
 
   // Generate, upload to bucket0, then serve
   const pdf = await generateInvoicePdf({
+    orderNumber: order.id,
     invoiceNumber: order.invoiceNumber ?? "—",
     orderRef: order.orderRef,
     date: order.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
