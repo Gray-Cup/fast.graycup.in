@@ -36,66 +36,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing order_id" }, { status: 400 });
     }
 
-    // Idempotency: skip if already processed
-    const existing = await db.select().from(orders).where(eq(orders.orderRef, orderRef)).limit(1);
-    if (existing.length && existing[0].status === "PAID") {
+    const rows = await db.select().from(orders).where(eq(orders.orderRef, orderRef)).limit(1);
+    if (!rows.length) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+    const order = rows[0];
+
+    if (order.status === "PAID") {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    // Reconstruct order data from Cashfree's order_tags + customer_details
-    const tags: Record<string, string> = data?.order?.order_tags ?? {};
-    const customerDetails = data?.customer_details ?? {};
-
-    const productId = tags.productId ?? "";
-    const productName = tags.productName ?? "";
-    const variantLabel = tags.variantLabel ?? "";
-    const quantity = parseInt(tags.quantity ?? "1", 10);
-    const amount = Math.round(Number(data?.order?.order_amount ?? 0));
-    const gstAmount = parseInt(tags.gstAmount ?? "0", 10);
-    const batchId = tags.batchId || null;
-    const customerAddress = tags.customerAddress ?? "";
-    const customerPincode = tags.customerPincode ?? "";
-    const customerName = customerDetails.customer_name ?? "";
-    const customerPhone = customerDetails.customer_phone ?? "";
-    const customerEmail = customerDetails.customer_email || null;
-    const cfPaymentId = String(data?.payment?.cf_payment_id ?? orderRef);
-
     const invoiceNumber = await generateInvoiceRef();
-    const now = new Date();
 
-    await db.insert(orders).values({
-      orderRef,
-      cashfreeOrderId: cfPaymentId,
-      productId,
-      productName,
-      variantLabel,
-      quantity,
-      amount,
-      gstAmount,
-      customerName,
-      customerPhone,
-      customerEmail,
-      customerAddress,
-      customerPincode,
-      batchId,
-      status: "PAID",
-      invoiceNumber,
-    });
+    await db.update(orders).set({ status: "PAID", invoiceNumber }).where(eq(orders.orderRef, orderRef));
 
     const invoicePdf = await generateInvoicePdf({
       invoiceNumber,
       orderRef,
-      date: now.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
-      customerName,
-      customerPhone,
-      customerEmail,
-      customerAddress,
-      customerPincode,
-      productName,
-      variantLabel,
-      quantity,
-      amount,
-      gstAmount,
+      date: order.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      customerEmail: order.customerEmail,
+      customerAddress: order.customerAddress,
+      customerPincode: order.customerPincode,
+      productName: order.productName,
+      variantLabel: order.variantLabel,
+      quantity: order.quantity,
+      amount: order.amount,
+      gstAmount: order.gstAmount,
     });
 
     const invoiceKey = `invoices/${orderRef}.pdf`;

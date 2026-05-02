@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateOrderRef } from "@/lib/db";
+import { db, generateOrderRef } from "@/lib/db";
+import { orders } from "@/lib/db/schema";
+import { getPincodeDetails } from "@/lib/delhivery";
 
 const GST_RATE = 0.05;
 
@@ -67,6 +69,8 @@ export async function POST(req: NextRequest) {
         ? "https://api.cashfree.com/pg"
         : "https://sandbox.cashfree.com/pg";
 
+    const pincodeInfo = await getPincodeDetails(customer.pincode).catch(() => null);
+
     const cfRes = await fetch(`${apiBase}/orders`, {
       method: "POST",
       headers: {
@@ -90,17 +94,6 @@ export async function POST(req: NextRequest) {
           notify_url: `${baseUrl}/api/cashfree-webhook`,
         },
         order_note: `${productName} | ${customer.address}, ${customer.pincode}`,
-        // All data needed to create the DB row after payment confirmation
-        order_tags: {
-          productId,
-          productName,
-          variantLabel,
-          quantity: String(quantity),
-          gstAmount: String(gstAmt),
-          batchId: batchId ?? "",
-          customerAddress: customer.address,
-          customerPincode: customer.pincode,
-        },
       }),
     });
 
@@ -115,6 +108,24 @@ export async function POST(req: NextRequest) {
         { status: 502 }
       );
     }
+
+    await db.insert(orders).values({
+      orderRef,
+      cashfreeOrderId: cfData.cf_order_id || orderRef,
+      productId,
+      productName,
+      variantLabel,
+      quantity,
+      amount,
+      gstAmount: gstAmt,
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      customerEmail: customer.email || null,
+      customerAddress: customer.address + (pincodeInfo ? `, ${pincodeInfo.city}` : ""),
+      customerPincode: customer.pincode,
+      batchId,
+      status: "PENDING",
+    });
 
     return NextResponse.json({
       orderRef,
