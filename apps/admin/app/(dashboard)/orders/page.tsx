@@ -598,7 +598,6 @@ export default function OrdersPage() {
                   <td className="px-4 py-3 font-mono text-xs font-bold">{o.orderRef}</td>
                   <td className="px-4 py-3">
                     <div className="font-medium">{o.customerName}</div>
-                    <div className="text-xs text-gray-400">{o.customerPhone}</div>
                   </td>
                   <td className="px-4 py-3">
                     <div>{o.productName}</div>
