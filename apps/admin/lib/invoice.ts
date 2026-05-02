@@ -197,45 +197,45 @@ function drawShippingLabel(doc: typeof PDFDocument.prototype, d: ShippingLabelDa
   const black = "#000000";
   const gray = "#555555";
   const light = "#999999";
-  const pad = 14;
+  const pad = 12;
 
   // Border
   doc.rect(x, y, w, h).strokeColor("#cccccc").lineWidth(0.5).stroke();
 
-  // FROM block
-  const fromH = 44;
+  // FROM block — fixed height 40
+  const fromH = 40;
   doc.rect(x, y, w, fromH).fillColor("#f5f5f5").fill();
   doc.rect(x, y, w, fromH).strokeColor("#cccccc").lineWidth(0.5).stroke();
-  doc.fontSize(6).font("Helvetica").fillColor(light).text("FROM", x + pad, y + 7);
-  doc.fontSize(8).font("Helvetica-Bold").fillColor(black).text("Gray Cup Enterprises", x + pad, y + 16);
-  doc.fontSize(6.5).font("Helvetica").fillColor(gray).text("FF122 Rodeo Drive Mall, GT Road, Kundli, Sonipat, Haryana 131030", x + pad, y + 28, { width: w - pad * 2 });
+  doc.fontSize(6).font("Helvetica").fillColor(light).text("FROM", x + pad, y + 7, { lineBreak: false });
+  doc.fontSize(8).font("Helvetica-Bold").fillColor(black).text("Gray Cup Enterprises", x + pad, y + 16, { lineBreak: false });
+  doc.fontSize(6).font("Helvetica").fillColor(gray).text("FF122 Rodeo Drive Mall, GT Road, Kundli, Sonipat, Haryana 131030", x + pad, y + 27, { width: w - pad * 2, lineBreak: false });
 
-  // SHIP TO block
-  const shipToY = y + fromH + 8;
-  doc.fontSize(6).font("Helvetica").fillColor(light).text("SHIP TO", x + pad, shipToY);
+  // SHIP TO
+  const shipToY = y + fromH + 7;
+  doc.fontSize(6).font("Helvetica").fillColor(light).text("SHIP TO", x + pad, shipToY, { lineBreak: false });
 
   const nameY = shipToY + 10;
-  doc.fontSize(14).font("Helvetica-Bold").fillColor(black).text(d.customerName.toUpperCase(), x + pad, nameY, { width: w - pad * 2 });
+  doc.fontSize(13).font("Helvetica-Bold").fillColor(black).text(d.customerName.toUpperCase(), x + pad, nameY, { width: w - pad * 2, lineBreak: false });
 
-  const afterNameY = Math.max(doc.y + 4, nameY + 22);
-  doc.fontSize(8).font("Helvetica").fillColor(gray).text(d.customerAddress, x + pad, afterNameY, { width: w - pad * 2 });
+  const addrY = nameY + 20;
+  doc.fontSize(7.5).font("Helvetica").fillColor(gray).text(d.customerAddress, x + pad, addrY, { width: w - pad * 2, lineBreak: false });
 
-  const pincodeY = Math.max(doc.y + 8, afterNameY + 26);
-  doc.fontSize(16).font("Helvetica-Bold").fillColor(black).text(d.customerPincode, x + pad, pincodeY);
+  const pincodeY = addrY + 22;
+  doc.fontSize(15).font("Helvetica-Bold").fillColor(black).text(d.customerPincode, x + pad, pincodeY, { lineBreak: false });
 
-  const phoneY = doc.y + 6;
-  doc.fontSize(8.5).font("Helvetica").fillColor(gray).text(`Phone: ${d.customerPhone}`, x + pad, phoneY);
+  const phoneY = pincodeY + 22;
+  doc.fontSize(8).font("Helvetica").fillColor(gray).text(`Phone: ${d.customerPhone}`, x + pad, phoneY, { lineBreak: false });
 
   // Divider
-  const divY = Math.max(doc.y + 10, pincodeY + 40);
+  const divY = phoneY + 16;
   doc.moveTo(x + pad, divY).lineTo(x + w - pad, divY).strokeColor("#dddddd").lineWidth(0.4).stroke();
 
   // Order info block
   const infoY = divY + 8;
-  doc.fontSize(7).font("Helvetica-Bold").fillColor(black).text(`ORDER: ${d.orderRef}`, x + pad, infoY);
-  doc.fontSize(9).font("Helvetica-Bold").fillColor(black).text(`AWB: ${d.waybill}`, x + pad, infoY + 12);
-  doc.fontSize(7).font("Helvetica").fillColor(gray).text(d.productDesc, x + pad, infoY + 26, { width: w - pad * 2 });
-  doc.fontSize(7).fillColor(light).text(`₹${d.amount}  •  Surface  •  Prepaid`, x + pad, infoY + 38);
+  doc.fontSize(6.5).font("Helvetica-Bold").fillColor(black).text(`ORDER: ${d.orderRef}`, x + pad, infoY, { lineBreak: false });
+  doc.fontSize(9).font("Helvetica-Bold").fillColor(black).text(`AWB: ${d.waybill}`, x + pad, infoY + 12, { lineBreak: false });
+  doc.fontSize(6.5).font("Helvetica").fillColor(gray).text(d.productDesc, x + pad, infoY + 26, { width: w - pad * 2, lineBreak: false });
+  doc.fontSize(6.5).fillColor(light).text(`₹${d.amount}  •  Surface  •  Prepaid`, x + pad, infoY + 38, { lineBreak: false });
 }
 
 export async function generateShippingLabelPdf(labels: ShippingLabelData[]): Promise<Buffer> {
