@@ -108,30 +108,40 @@ export async function POST(req: NextRequest) {
     if (!cfRes.ok) {
       return NextResponse.json(
         {
-          error: cfData.message || "Failed to create payment order",
+          error: "Something went wrong. Please try again in a moment.",
           _debug: { cashfreeEnv, apiBase, cfStatus: cfRes.status, cfError: cfData },
         },
         { status: 502 }
       );
     }
 
-    await db.insert(orders).values({
-      orderRef,
-      cashfreeOrderId: cfData.cf_order_id || orderRef,
-      productId,
-      productName,
-      variantLabel,
-      quantity,
-      amount,
-      gstAmount: gstAmt,
-      customerName: customer.name,
-      customerPhone: customer.phone,
-      customerEmail: customer.email || null,
-      customerAddress: customer.address + (pincodeInfo ? `, ${pincodeInfo.city}` : ""),
-      customerPincode: customer.pincode,
-      batchId,
-      status: "PENDING",
-    });
+    try {
+      await db.insert(orders).values({
+        orderRef,
+        cashfreeOrderId: cfData.cf_order_id || orderRef,
+        productId,
+        productName,
+        variantLabel,
+        quantity,
+        amount,
+        gstAmount: gstAmt,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+        customerEmail: customer.email || null,
+        customerAddress: customer.address + (pincodeInfo ? `, ${pincodeInfo.city}` : ""),
+        customerPincode: customer.pincode,
+        batchId,
+        status: "PENDING",
+      });
+    } catch (err: any) {
+      if (err?.code === "23505") {
+        return NextResponse.json(
+          { error: "Something went wrong. Please try again in a moment." },
+          { status: 500 }
+        );
+      }
+      throw err;
+    }
 
     return NextResponse.json({
       orderRef,

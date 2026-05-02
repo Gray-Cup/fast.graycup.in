@@ -1,5 +1,6 @@
 import { drizzle } from "drizzle-orm/neon-http";
-import { count, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
+import { randomBytes } from "crypto";
 import * as schema from "./db/schema";
 
 export { sql } from "drizzle-orm";
@@ -52,7 +53,7 @@ export async function setupSchema() {
 }
 
 export async function generateOrderRef(): Promise<string> {
-  const result = await db.select({ count: count() }).from(schema.orders);
-  const countNum = Number(result[0].count) + 1;
-  return `GCF-${String(countNum).padStart(4, "0")}`;
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const randomPart = randomBytes(3).toString("hex").toUpperCase();
+  return `GCF-${timestamp}${randomPart}`;
 }
