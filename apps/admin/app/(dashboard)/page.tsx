@@ -438,20 +438,25 @@ function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-      {/* Orders card — split bar */}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+      {/* Successful orders */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col gap-3">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Orders</p>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Successful</p>
         <p className="text-[26px] font-black leading-none text-gray-900">{successful.length}</p>
-        <div className="h-1 rounded-full bg-gray-100 overflow-hidden flex">
-          <div className="h-full bg-gray-900 transition-all duration-700 rounded-l-full" style={{ width: `${successPct}%` }} />
-          {expiredPct > 0 && (
-            <div className="h-full bg-gray-400 transition-all duration-700 rounded-r-full" style={{ width: `${expiredPct}%` }} />
-          )}
+        <div className="h-1 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-full bg-gray-900 rounded-full transition-all duration-700" style={{ width: `${successPct}%` }} />
         </div>
-        <p className="text-[10px] text-gray-400">
-          {successful.length} successful · {expired.length} expired
-        </p>
+        <p className="text-[10px] text-gray-400">{successPct}% of all orders</p>
+      </div>
+
+      {/* Expired orders */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col gap-3">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Expired</p>
+        <p className="text-[26px] font-black leading-none text-gray-400">{expired.length}</p>
+        <div className="h-1 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-full bg-gray-300 rounded-full transition-all duration-700" style={{ width: `${expiredPct}%` }} />
+        </div>
+        <p className="text-[10px] text-gray-400">{expiredPct}% of all orders</p>
       </div>
 
       {/* Metric cards */}
@@ -469,7 +474,7 @@ function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
         );
       })}
 
-      {/* Success rate card */}
+      {/* Success rate */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col gap-3">
         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Success Rate</p>
         <p className="text-[26px] font-black leading-none text-gray-900">{successPct}%</p>
