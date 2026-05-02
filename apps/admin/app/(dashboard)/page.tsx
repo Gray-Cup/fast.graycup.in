@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-type Order = { id: number; orderRef: string; status: string; amount: number; createdAt: string };
+type Order = { id: number; orderNumber: number; orderRef: string; status: string; amount: number; createdAt: string };
 type Period = "today" | "week" | "lifetime";
 type PatternTab = "hour" | "weekday" | "month";
 
@@ -432,7 +432,7 @@ function RecentOrders({ orders, period }: { orders: Order[]; period: Period }) {
               const st = o.status === "PENDING" && Date.now() - new Date(o.createdAt).getTime() > 15 * 60 * 1000 ? "EXPIRED" : o.status;
               return (
                 <div key={o.id} className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50/60 transition-colors">
-                  <span className="text-[10px] font-bold text-gray-300 tabular-nums w-6 shrink-0">#{o.id}</span>
+                  <span className="text-[10px] font-bold text-gray-300 tabular-nums w-6 shrink-0">#{o.orderNumber}</span>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[st] ?? "bg-gray-300"}`} />
                   <span className="font-mono text-xs font-bold text-gray-700 flex-1 truncate">{o.orderRef}</span>
                   <span className="text-[10px] text-gray-400 tabular-nums shrink-0">

@@ -5,6 +5,7 @@ import { zipSync } from "fflate";
 
 type Order = {
   id: number;
+  orderNumber: number;
   orderRef: string;
   productName: string;
   variantLabel: string;
@@ -159,11 +160,12 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
 function RowActions({
   order, busy,
-  onView, onCreateWaybill, onSyncStatus, onVerifyPayment, onCancel, onDelete,
+  onView, onCreateWaybill, onTriggerPickup, onSyncStatus, onVerifyPayment, onCancel, onDelete,
 }: {
   order: Order; busy: boolean;
   onView: () => void;
   onCreateWaybill: () => void;
+  onTriggerPickup: () => void;
   onSyncStatus: () => void;
   onVerifyPayment: () => void;
   onCancel: () => void;
@@ -183,7 +185,7 @@ function RowActions({
 
   const canCreateWaybill = ["PAID", "PAID_DISPATCH_PENDING"].includes(order.status);
   const hasWaybill = !!order.delhiveryWaybill;
-  const isActive = ["DISPATCHED"].includes(order.status);
+  const isDispatched = order.status === "DISPATCHED";
 
   return (
     <div ref={ref} className="relative">
@@ -213,13 +215,23 @@ function RowActions({
             </button>
           )}
 
-          {hasWaybill && (
+          {isDispatched && hasWaybill && (
+            <button
+              onClick={() => { onTriggerPickup(); setOpen(false); }}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-amber-50 text-amber-700 disabled:opacity-40"
+            >
+              Trigger Pickup
+            </button>
+          )}
+
+          {isDispatched && hasWaybill && (
             <button
               onClick={() => { onSyncStatus(); setOpen(false); }}
               disabled={busy}
               className="w-full text-left px-4 py-2 text-sm hover:bg-purple-50 text-purple-700 disabled:opacity-40"
             >
-              Sync Tracking Status
+              Sync Tracking
             </button>
           )}
 
@@ -233,7 +245,7 @@ function RowActions({
             </button>
           )}
 
-          {isActive && hasWaybill && (
+          {isDispatched && hasWaybill && (
             <button
               onClick={() => { onCancel(); setOpen(false); }}
               disabled={busy}
@@ -446,14 +458,15 @@ export default function OrdersPage() {
     setBusy(false);
   };
 
-  const triggerPickup = async () => {
-    if (selectedWithWaybill.length === 0) { showToast("error", "Select orders with waybills first"); return; }
+  const triggerPickup = async (refs?: string[]) => {
+    const orderRefs = refs ?? selectedWithWaybill;
+    if (orderRefs.length === 0) { showToast("error", "Select orders with waybills first"); return; }
     setBusy(true);
     try {
       const res = await fetch("/api/orders/trigger-pickup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderRefs: selectedWithWaybill }),
+        body: JSON.stringify({ orderRefs }),
       });
       const data = await res.json();
       showToast(data.success ? "success" : "error", data.message || data.error || "Done");
@@ -634,7 +647,7 @@ export default function OrdersPage() {
 
             {selectedWithWaybill.length > 0 && (
               <button
-                onClick={triggerPickup}
+                onClick={() => triggerPickup()}
                 disabled={busy}
                 className="px-3 py-1.5 text-sm font-semibold bg-amber-600 hover:bg-amber-700 text-white rounded-lg disabled:opacity-50 transition-colors"
               >
@@ -725,7 +738,7 @@ export default function OrdersPage() {
                       className="rounded cursor-pointer"
                     />
                   </td>
-                  <td className="px-4 py-3 text-xs font-bold text-gray-400 tabular-nums">#{o.id}</td>
+                  <td className="px-4 py-3 text-xs font-bold text-gray-400 tabular-nums">#{o.orderNumber}</td>
                   <td className="px-4 py-3 font-mono text-xs font-bold">{o.orderRef}</td>
                   <td className="px-4 py-3">
                     <div className="font-medium">{o.customerName}</div>
@@ -749,6 +762,7 @@ export default function OrdersPage() {
                       busy={busy}
                       onView={() => setSelectedOrder(o)}
                       onCreateWaybill={() => createWaybill(o.orderRef)}
+                      onTriggerPickup={() => triggerPickup([o.orderRef])}
                       onSyncStatus={() => syncTracking([o.orderRef])}
                       onVerifyPayment={() => verifyPayment(o.orderRef)}
                       onCancel={() => cancelShipment(o.orderRef)}

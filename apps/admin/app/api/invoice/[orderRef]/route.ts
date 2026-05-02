@@ -1,8 +1,8 @@
 import React from "react";
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { db, schema } from "@graycup/db";
-import { eq } from "drizzle-orm";
+import { db, schema, sql } from "@graycup/db";
+import { eq, getTableColumns } from "drizzle-orm";
 import { InvoicePdf } from "@/lib/pdf/InvoicePdf";
 
 export async function GET(
@@ -12,7 +12,10 @@ export async function GET(
   const { orderRef } = await params;
 
   const rows = await db
-    .select()
+    .select({
+      ...getTableColumns(schema.orders),
+      orderNumber: sql<number>`(SELECT COUNT(*)::int FROM orders o2 WHERE o2.id <= ${schema.orders.id})`,
+    })
     .from(schema.orders)
     .where(eq(schema.orders.orderRef, orderRef))
     .limit(1);
@@ -26,7 +29,7 @@ export async function GET(
   const pdf = await renderToBuffer(
     React.createElement(InvoicePdf, {
       data: {
-        orderNumber: o.id,
+        orderNumber: o.orderNumber,
         invoiceNumber: o.invoiceNumber ?? "—",
         orderRef: o.orderRef,
         date: o.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),

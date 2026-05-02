@@ -1,8 +1,8 @@
 import React from "react";
 import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
-import { db, schema, generateInvoiceRef } from "@graycup/db";
-import { eq, inArray } from "drizzle-orm";
+import { db, schema, generateInvoiceRef, sql } from "@graycup/db";
+import { eq, inArray, getTableColumns } from "drizzle-orm";
 import { InvoicePdf } from "@/lib/pdf/InvoicePdf";
 import { GstSummaryPdf } from "@/lib/pdf/GstSummaryPdf";
 import { MultiInvoiceDoc } from "@/lib/pdf/MultiInvoicePdf";
@@ -15,7 +15,10 @@ export async function POST(req: NextRequest) {
     }
 
     const rows = await db
-      .select()
+      .select({
+        ...getTableColumns(schema.orders),
+        orderNumber: sql<number>`(SELECT COUNT(*)::int FROM orders o2 WHERE o2.id <= ${schema.orders.id})`,
+      })
       .from(schema.orders)
       .where(inArray(schema.orders.orderRef, orderRefs));
 
@@ -60,7 +63,7 @@ export async function POST(req: NextRequest) {
       );
     } else {
       const invoiceData = orders.map((o) => ({
-        orderNumber: o.id,
+        orderNumber: o.orderNumber,
         invoiceNumber: o.invoiceNumber ?? "—",
         orderRef: o.orderRef,
         date: o.createdAt.toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" }),

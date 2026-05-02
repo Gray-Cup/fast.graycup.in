@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { db, schema, generateInvoiceRef, eq, inArray, sql } from "@graycup/db";
+import { getTableColumns } from "drizzle-orm";
 import { InvoicePdf } from "@/lib/pdf/InvoicePdf";
 import { s3, BUCKET } from "@/lib/s3";
 
@@ -14,7 +15,10 @@ export async function POST(req: NextRequest) {
     }
 
     const rows = await db
-      .select()
+      .select({
+        ...getTableColumns(schema.orders),
+        orderNumber: sql<number>`(SELECT COUNT(*)::int FROM orders o2 WHERE o2.id <= ${schema.orders.id})`,
+      })
       .from(schema.orders)
       .where(inArray(schema.orders.orderRef, orderRefs));
 
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest) {
       const pdf = await renderToBuffer(
         React.createElement(InvoicePdf, {
           data: {
-            orderNumber: o.id,
+            orderNumber: o.orderNumber,
             invoiceNumber,
             orderRef: o.orderRef,
             date,
