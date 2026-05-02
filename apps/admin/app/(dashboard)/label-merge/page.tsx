@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, PDFName, PDFArray, PDFNumber, type PDFPage } from "pdf-lib";
 
 interface LabelFile {
   name: string;
@@ -35,6 +35,27 @@ export default function LabelMergePage() {
 
   const removeFile = (idx: number) => setFiles((prev) => prev.filter((_, i) => i !== idx));
   const clearAll = () => setFiles([]);
+
+  // Returns the tightest box available: TrimBox → CropBox → ArtBox → MediaBox
+  const getContentBox = (page: PDFPage): { x: number; y: number; width: number; height: number } => {
+    const mb = page.getMediaBox();
+    for (const name of ["TrimBox", "CropBox", "ArtBox"]) {
+      try {
+        const arr = page.node.lookupMaybe(PDFName.of(name), PDFArray);
+        if (arr && arr.size() === 4) {
+          const l = (arr.lookup(0) as PDFNumber).asNumber();
+          const b = (arr.lookup(1) as PDFNumber).asNumber();
+          const r = (arr.lookup(2) as PDFNumber).asNumber();
+          const t = (arr.lookup(3) as PDFNumber).asNumber();
+          const w = r - l, h = t - b;
+          if (w > 0 && h > 0 && (w < mb.width * 0.99 || h < mb.height * 0.99)) {
+            return { x: l, y: b, width: w, height: h };
+          }
+        }
+      } catch {}
+    }
+    return { x: mb.x, y: mb.y, width: mb.width, height: mb.height };
+  };
 
   const merge = async () => {
     if (files.length === 0) return;
@@ -70,9 +91,11 @@ export default function LabelMergePage() {
 
         for (let j = 0; j < batch.length; j++) {
           const { doc: srcDoc, pageIdx } = batch[j];
-          const [embedded] = await output.embedPages(
-            (await PDFDocument.load(await srcDoc.save())).getPages().slice(pageIdx, pageIdx + 1)
-          );
+          const freshDoc = await PDFDocument.load(await srcDoc.save());
+          const freshPage = freshDoc.getPage(pageIdx);
+          const contentBox = getContentBox(freshPage);
+
+          const [embedded] = await output.embedPages([freshPage], [contentBox]);
 
           const col = j % cols;
           const row = Math.floor(j / cols);
@@ -80,9 +103,8 @@ export default function LabelMergePage() {
           // pdf-lib Y is from bottom — flip row
           const y = A4_H - margin - (row + 1) * cellH - row * gap;
 
-          const srcPage = srcDoc.getPage(pageIdx);
-          const srcW = srcPage.getWidth();
-          const srcH = srcPage.getHeight();
+          const srcW = embedded.width;
+          const srcH = embedded.height;
           const scale = Math.min(cellW / srcW, cellH / srcH);
           const drawW = srcW * scale;
           const drawH = srcH * scale;
