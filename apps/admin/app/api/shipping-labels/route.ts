@@ -32,12 +32,16 @@ export async function POST(req: NextRequest) {
     amount: o.amount,
   }));
 
-  const pdf = await generateShippingLabelPdf(labels);
-
-  return new Response(new Uint8Array(pdf), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="shipping-labels.pdf"`,
-    },
-  });
+  try {
+    const pdf = await generateShippingLabelPdf(labels);
+    return new Response(new Uint8Array(pdf), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="shipping-labels.pdf"`,
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
+    return NextResponse.json({ error: "PDF generation failed", detail: msg }, { status: 500 });
+  }
 }

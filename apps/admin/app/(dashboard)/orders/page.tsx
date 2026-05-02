@@ -369,7 +369,12 @@ export default function OrdersPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderRefs: selectedWithWaybill }),
       });
-      if (!res.ok) { showToast("error", "Failed to generate labels"); setBusy(false); return; }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        showToast("error", errData.detail ? errData.detail.split("\n")[0] : (errData.error || "Failed to generate labels"));
+        setBusy(false);
+        return;
+      }
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
