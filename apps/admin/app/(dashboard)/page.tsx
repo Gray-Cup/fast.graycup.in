@@ -71,9 +71,11 @@ function GitHubHeatmap({ orders }: { orders: Order[] }) {
   const [tt, setTt] = useState<TT>(null);
 
   const countByDate: Record<string, number> = {};
+  const expiredByDate: Record<string, number> = {};
   orders.forEach((o) => {
     const k = o.createdAt.slice(0, 10);
     countByDate[k] = (countByDate[k] || 0) + 1;
+    if (isExpired(o)) expiredByDate[k] = (expiredByDate[k] || 0) + 1;
   });
   const maxCount = Math.max(1, ...Object.values(countByDate));
 
@@ -165,9 +167,16 @@ function GitHubHeatmap({ orders }: { orders: Order[] }) {
                         backgroundColor: day.future ? "transparent" : heatColor(day.count, maxCount),
                         cursor: day.future ? "default" : "crosshair",
                       }}
-                      {...(!day.future ? ttOn(setTt,
-                        `${day.count} order${day.count !== 1 ? "s" : ""} · ${day.date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}`
-                      ) : {})}
+                      {...(!day.future ? ttOn(setTt, (() => {
+                        const ds = `${day.date.getFullYear()}-${String(day.date.getMonth() + 1).padStart(2, "0")}-${String(day.date.getDate()).padStart(2, "0")}`;
+                        const exp = expiredByDate[ds] || 0;
+                        const succ = day.count - exp;
+                        const parts: string[] = [];
+                        if (succ > 0) parts.push(`${succ} order${succ !== 1 ? "s" : ""}`);
+                        if (exp > 0) parts.push(`${exp} expired`);
+                        const label = parts.length ? parts.join(" · ") : "0 orders";
+                        return `${label} · ${day.date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}`;
+                      })()) : {})}
                     />
                   ))}
                 </div>
