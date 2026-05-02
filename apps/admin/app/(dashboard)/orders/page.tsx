@@ -581,7 +581,8 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">{o.delhiveryWaybill || "—"}</td>
                   <td className="px-4 py-3 text-xs text-gray-400">
-                    {new Date(o.createdAt).toLocaleDateString("en-IN")}
+                    <div>{new Date(o.createdAt).toLocaleDateString("en-IN")}</div>
+                    <div className="font-mono tabular-nums">{new Date(o.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</div>
                   </td>
                   <td className="px-4 py-3">
                     <RowActions

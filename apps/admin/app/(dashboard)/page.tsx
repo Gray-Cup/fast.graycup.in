@@ -62,7 +62,10 @@ export default function AdminHome() {
                 {orders.slice(0, 5).map((o) => (
                   <tr key={o.id} className="border-b border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono text-xs font-bold">{o.orderRef}</td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{new Date(o.createdAt).toLocaleDateString("en-IN")}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400">
+                      <div>{new Date(o.createdAt).toLocaleDateString("en-IN")}</div>
+                      <div className="font-mono tabular-nums">{new Date(o.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</div>
+                    </td>
                     <td className="px-4 py-3 text-right font-bold">₹{o.amount}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
