@@ -73,14 +73,16 @@ export default function CartCheckoutModal({ onClose }: { onClose: () => void }) 
       });
 
       const data = await res.json();
+      const cfMode = (process.env.NEXT_PUBLIC_CASHFREE_MODE as "sandbox" | "production") || "sandbox";
+      console.log("[cart-checkout] server debug:", data._debug);
+      console.log("[cart-checkout] client SDK mode:", cfMode);
+      console.log("[cart-checkout] sessionId prefix:", data.paymentSessionId?.slice(0, 16));
       if (!res.ok) throw new Error(data.error || "Failed to create order");
 
       clearCart();
 
       const { load } = await import("@cashfreepayments/cashfree-js");
-      const cashfree = await load({
-        mode: (process.env.NEXT_PUBLIC_CASHFREE_MODE as "sandbox" | "production") || "sandbox",
-      });
+      const cashfree = await load({ mode: cfMode });
       cashfree.checkout({ paymentSessionId: data.paymentSessionId, redirectTarget: "_self" });
     } catch (err) {
       console.error(err);

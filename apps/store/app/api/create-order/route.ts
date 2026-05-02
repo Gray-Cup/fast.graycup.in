@@ -104,20 +104,22 @@ export async function POST(req: NextRequest) {
       }),
     });
 
+    const cfData = await cfRes.json();
+
     if (!cfRes.ok) {
-      const errData = await cfRes.json();
-      console.error("Cashfree error:", errData);
       return NextResponse.json(
-        { error: errData.message || "Failed to create payment order" },
+        {
+          error: cfData.message || "Failed to create payment order",
+          _debug: { cashfreeEnv, apiBase, cfStatus: cfRes.status, cfError: cfData },
+        },
         { status: 502 }
       );
     }
 
-    const cfData = await cfRes.json();
-
     return NextResponse.json({
       orderRef,
       paymentSessionId: cfData.payment_session_id,
+      _debug: { cashfreeEnv, apiBase, cfOrderId: cfData.cf_order_id, appIdPrefix: appId.slice(0, 8) },
     });
   } catch (err) {
     console.error("create-order:", err);
