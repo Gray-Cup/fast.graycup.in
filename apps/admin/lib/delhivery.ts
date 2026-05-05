@@ -148,10 +148,10 @@ export async function trackMultipleShipments(waybills: string[]): Promise<Record
       const s = item?.Shipment;
       if (s?.Waybill) {
         result[s.Waybill] = {
-          status: s.Status || "",
-          statusType: s.StatusType || s.StatusCode || s.Status || "",
-          location: s.StatusLocation || "",
-          updatedAt: s.StatusDateTime || "",
+          status: s.Status?.Status || "",
+          statusType: s.Status?.StatusType || s.StatusType || s.StatusCode || "",
+          location: s.Status?.StatusLocation || "",
+          updatedAt: s.Status?.StatusDateTime || "",
         };
       }
     }
