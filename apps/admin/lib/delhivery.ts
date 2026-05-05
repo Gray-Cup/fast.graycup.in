@@ -146,8 +146,8 @@ export async function trackMultipleShipments(waybills: string[]): Promise<Record
     const result: Record<string, { status: string; statusType: string; location: string; updatedAt: string }> = {};
     for (const item of data?.ShipmentData || []) {
       const s = item?.Shipment;
-      if (s?.Waybill) {
-        result[s.Waybill] = {
+      if (s?.AWB) {
+        result[s.AWB] = {
           status: s.Status?.Status || "",
           statusType: s.Status?.StatusType || s.StatusType || s.StatusCode || "",
           location: s.Status?.StatusLocation || "",
