@@ -38,11 +38,17 @@ const STATUS_COLORS: Record<string, string> = {
   CANCELLED: "bg-gray-200 text-gray-600",
 };
 
+function normalizeStatus(status: string) {
+  return status?.trim().toUpperCase();
+}
+
 function displayStatus(status: string, createdAt: string) {
-  if (status === "PENDING" && Date.now() - new Date(createdAt).getTime() > 15 * 60 * 1000) {
+  const normalized = normalizeStatus(status);
+
+  if (normalized === "PENDING" && Date.now() - new Date(createdAt).getTime() > 15 * 60 * 1000) {
     return "EXPIRED";
   }
-  return status;
+  return normalized || status;
 }
 
 function StatusBadge({ status, createdAt }: { status: string; createdAt: string }) {
@@ -184,9 +190,10 @@ function RowActions({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const canCreateWaybill = ["PAID", "PAID_DISPATCH_PENDING"].includes(order.status);
+  const normalizedStatus = normalizeStatus(order.status);
+  const canCreateWaybill = ["PAID", "PAID_DISPATCH_PENDING"].includes(normalizedStatus);
   const hasWaybill = !!order.delhiveryWaybill;
-  const isDispatched = order.status === "DISPATCHED";
+  const isDispatched = normalizedStatus === "DISPATCHED";
 
   return (
     <div ref={ref} className="relative">
@@ -407,9 +414,10 @@ export default function OrdersPage() {
 
   const filteredOrders = orders
     .filter((o) => {
-      if (filter === "unfulfilled") return ["PAID", "PAID_DISPATCH_PENDING"].includes(o.status);
-      if (filter === "dispatched") return o.status === "DISPATCHED";
-      if (filter === "delivered") return o.status === "DELIVERED";
+      const status = normalizeStatus(o.status);
+      if (filter === "unfulfilled") return ["PAID", "PAID_DISPATCH_PENDING"].includes(status);
+      if (filter === "dispatched") return status === "DISPATCHED";
+      if (filter === "delivered") return status === "DELIVERED";
       return true;
     })
     .sort((a, b) => {
@@ -419,7 +427,7 @@ export default function OrdersPage() {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); // newest
     });
 
-  const unfulfilledCount = orders.filter((o) => ["PAID", "PAID_DISPATCH_PENDING"].includes(o.status)).length;
+  const unfulfilledCount = orders.filter((o) => ["PAID", "PAID_DISPATCH_PENDING"].includes(normalizeStatus(o.status))).length;
   const allSelected = filteredOrders.length > 0 && filteredOrders.every((o) => selected.has(o.orderRef));
   const someSelected = filteredOrders.some((o) => selected.has(o.orderRef));
 
@@ -434,7 +442,7 @@ export default function OrdersPage() {
   const selectedRefs = [...selected];
   const selectedUnfulfilled = selectedRefs.filter((ref) => {
     const o = orders.find((x) => x.orderRef === ref);
-    return o && ["PAID", "PAID_DISPATCH_PENDING"].includes(o.status);
+    return o && ["PAID", "PAID_DISPATCH_PENDING"].includes(normalizeStatus(o.status));
   });
   const selectedWithWaybill = selectedRefs.filter((ref) =>
     orders.find((o) => o.orderRef === ref && o.delhiveryWaybill)

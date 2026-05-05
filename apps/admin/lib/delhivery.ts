@@ -149,7 +149,7 @@ export async function trackMultipleShipments(waybills: string[]): Promise<Record
       if (s?.Waybill) {
         result[s.Waybill] = {
           status: s.Status || "",
-          statusType: s.StatusType || s.StatusCode || "",
+          statusType: s.StatusType || s.StatusCode || s.Status || "",
           location: s.StatusLocation || "",
           updatedAt: s.StatusDateTime || "",
         };
@@ -163,12 +163,16 @@ export async function trackMultipleShipments(waybills: string[]): Promise<Record
 
 // Maps Delhivery StatusType to our internal order status
 export function mapDelhiveryStatus(statusType: string): string | null {
-  switch (statusType?.toUpperCase()) {
-    case "DL": return "DELIVERED";
-    case "RT":
-    case "DTO": return "RETURNED";
-    default: return null;
+  const normalized = statusType?.trim().toUpperCase();
+  if (!normalized) return null;
+
+  if (normalized === "DL" || normalized.includes("DL") || normalized.includes("DELIVERED")) {
+    return "DELIVERED";
   }
+  if (normalized === "RT" || normalized === "DTO" || normalized.includes("RTO") || normalized.includes("RETURN")) {
+    return "RETURNED";
+  }
+  return null;
 }
 
 export async function triggerPickup(expectedCount: number): Promise<{ success: boolean; pickupId?: string; error?: string }> {

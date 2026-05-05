@@ -53,6 +53,10 @@ function ttOn(set: React.Dispatch<React.SetStateAction<TT>>, text: string) {
 
 // ─── Period helpers ───────────────────────────────────────────────────────────
 
+function normalizeStatus(status: string) {
+  return status?.trim().toUpperCase();
+}
+
 function filterOrders(orders: Order[], period: Period): Order[] {
   if (period === "today") {
     const today = new Date().toISOString().slice(0, 10);
@@ -410,20 +414,20 @@ const PERIODS: { key: Period; label: string }[] = [
 const SUCCESSFUL = ["PAID", "PAID_DISPATCH_PENDING", "DISPATCHED", "DELIVERED", "RETURNED", "CANCELLED"];
 
 function isExpired(o: Order) {
-  return o.status === "PENDING" && Date.now() - new Date(o.createdAt).getTime() > 15 * 60 * 1000;
+  return normalizeStatus(o.status) === "PENDING" && Date.now() - new Date(o.createdAt).getTime() > 15 * 60 * 1000;
 }
 
 function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
   const o = filterOrders(orders, period);
 
-  const successful = o.filter((x) => SUCCESSFUL.includes(x.status));
+  const successful = o.filter((x) => SUCCESSFUL.includes(normalizeStatus(x.status)));
   const expired = o.filter(isExpired);
   const total = successful.length + expired.length;
 
   const revenue = successful.reduce((s, x) => s + x.amount, 0);
-  const paid = o.filter((x) => ["PAID", "PAID_DISPATCH_PENDING"].includes(x.status)).length;
-  const dispatched = o.filter((x) => x.status === "DISPATCHED").length;
-  const delivered = o.filter((x) => x.status === "DELIVERED").length;
+  const paid = o.filter((x) => ["PAID", "PAID_DISPATCH_PENDING"].includes(normalizeStatus(x.status))).length;
+  const dispatched = o.filter((x) => normalizeStatus(x.status) === "DISPATCHED").length;
+  const delivered = o.filter((x) => normalizeStatus(x.status) === "DELIVERED").length;
 
   const successPct = total === 0 ? 0 : Math.round((successful.length / total) * 100);
   const expiredPct = total === 0 ? 0 : 100 - successPct;
@@ -508,7 +512,8 @@ function RecentOrders({ orders, period }: { orders: Order[]; period: Period }) {
         : (
           <div className="divide-y divide-gray-50">
             {visible.map((o) => {
-              const st = o.status === "PENDING" && Date.now() - new Date(o.createdAt).getTime() > 15 * 60 * 1000 ? "EXPIRED" : o.status;
+              const status = normalizeStatus(o.status);
+              const st = status === "PENDING" && Date.now() - new Date(o.createdAt).getTime() > 15 * 60 * 1000 ? "EXPIRED" : status;
               return (
                 <div key={o.id} className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50/60 transition-colors">
                   <span className="text-[10px] font-bold text-gray-300 tabular-nums w-6 shrink-0">#{o.orderNumber}</span>
