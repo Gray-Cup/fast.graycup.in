@@ -3,6 +3,7 @@ import { createHmac } from "crypto";
 import { db, generateOrderRef } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { getPincodeDetails } from "@/lib/delhivery";
+import { products } from "@/lib/products";
 
 export function orderToken(orderRef: string): string {
   const secret = process.env.CASHFREE_SECRET_KEY ?? "fallback";
@@ -27,7 +28,7 @@ interface OrderPayload {
   variantLabel?: string;
   weightGrams?: number;
   quantity?: number;
-  amount: number;
+  amount?: number;
   batchId?: string | null;
   items?: OrderLine[];
   customer: {
@@ -39,10 +40,32 @@ interface OrderPayload {
   };
 }
 
+function computeAmount(payload: OrderPayload): number | null {
+  if (payload.items && payload.items.length > 0) {
+    let total = 0;
+    for (const item of payload.items) {
+      const product = products.find((p) => p.id === item.productId);
+      if (!product) return null;
+      const variant = product.variants.find((v) => v.label === item.variantLabel);
+      if (!variant) return null;
+      total += variant.price * item.quantity + (variant.deliveryCharge ?? 0) * item.quantity;
+    }
+    return total;
+  }
+  if (payload.productId && payload.variantLabel && payload.quantity) {
+    const product = products.find((p) => p.id === payload.productId);
+    if (!product) return null;
+    const variant = product.variants.find((v) => v.label === payload.variantLabel);
+    if (!variant) return null;
+    return variant.price * payload.quantity + (variant.deliveryCharge ?? 0);
+  }
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body: OrderPayload = await req.json();
-    const { amount, customer, items } = body;
+    const { customer, items } = body;
     const productId = body.productId ?? items?.[0]?.productId ?? "";
     const productName = items
       ? items.map((i) => `${i.productName} ${i.variantLabel} ×${i.quantity}`).join(", ")
@@ -51,7 +74,12 @@ export async function POST(req: NextRequest) {
     const quantity = body.quantity ?? items?.reduce((s, i) => s + i.quantity, 0) ?? 1;
     const batchId = body.batchId ?? items?.[0]?.batchId ?? null;
 
-    if (!amount || !customer?.name || !customer?.phone || !customer?.address || !customer?.pincode) {
+    const amount = computeAmount(body);
+    if (!amount) {
+      return NextResponse.json({ error: "Invalid product or variant" }, { status: 400 });
+    }
+
+    if (!customer?.name || !customer?.phone || !customer?.address || !customer?.pincode) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
