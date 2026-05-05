@@ -36,6 +36,7 @@ const STATUS_COLORS: Record<string, string> = {
   DELIVERED: "bg-green-100 text-green-800",
   RETURNED: "bg-red-100 text-red-700",
   CANCELLED: "bg-gray-200 text-gray-600",
+  REFUNDED: "bg-purple-100 text-purple-800",
 };
 
 function normalizeStatus(status: string) {
@@ -176,7 +177,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
 function RowActions({
   order, busy,
-  onView, onCreateWaybill, onTriggerPickup, onSyncStatus, onVerifyPayment, onCancel, onDelete,
+  onView, onCreateWaybill, onTriggerPickup, onSyncStatus, onVerifyPayment, onCancel, onRefund, onDelete,
 }: {
   order: Order; busy: boolean;
   onView: () => void;
@@ -185,6 +186,7 @@ function RowActions({
   onSyncStatus: () => void;
   onVerifyPayment: () => void;
   onCancel: () => void;
+  onRefund: () => void;
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -203,6 +205,7 @@ function RowActions({
   const canCreateWaybill = ["PAID"].includes(normalizedStatus);
   const hasWaybill = !!order.delhiveryWaybill;
   const isPickupAwaiting = normalizedStatus === "PAID_DISPATCH_PENDING";
+  const canRefund = ["PAID", "PAID_DISPATCH_PENDING", "DISPATCHED"].includes(normalizedStatus);
 
   return (
     <div ref={ref} className="relative">
@@ -269,6 +272,16 @@ function RowActions({
               className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 disabled:opacity-40"
             >
               Cancel Shipment
+            </button>
+          )}
+
+          {canRefund && (
+            <button
+              onClick={() => { onRefund(); setOpen(false); }}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-purple-50 text-purple-700 disabled:opacity-40"
+            >
+              Initiate Refund
             </button>
           )}
 
@@ -612,6 +625,22 @@ export default function OrdersPage() {
     setBusy(false);
   };
 
+  const refundOrder = async (orderRef: string) => {
+    if (!confirm(`Initiate full refund of ₹${orders.find((o) => o.orderRef === orderRef)?.amount} for ${orderRef}?`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/orders/${orderRef}/refund`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        showToast("success", `Refund initiated for ${orderRef}`);
+        loadOrders();
+      } else {
+        showToast("error", data.error || "Refund failed");
+      }
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
   const deleteOrder = async (orderRef: string) => {
     if (!confirm(`Permanently delete order ${orderRef} and its invoice? This cannot be undone.`)) return;
     setBusy(true);
@@ -823,6 +852,7 @@ export default function OrdersPage() {
                       onSyncStatus={() => syncTracking([o.orderRef])}
                       onVerifyPayment={() => verifyPayment(o.orderRef)}
                       onCancel={() => cancelShipment(o.orderRef)}
+                      onRefund={() => refundOrder(o.orderRef)}
                       onDelete={() => deleteOrder(o.orderRef)}
                     />
                   </td>
