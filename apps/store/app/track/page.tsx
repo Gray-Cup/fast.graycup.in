@@ -10,21 +10,22 @@ interface TrackingEvent {
   updated?: string;
 }
 
+interface ShipmentDetail {
+  Status?: string;
+  StatusType?: string;
+  CurrentLocation?: string;
+  ExpectedDeliveryDate?: string;
+  EstimatedDeliveryDate?: string;
+  UpdateTime?: string;
+  Picked?: string;
+  Delivered?: string;
+  consignee?: string;
+  destination?: string;
+  origin?: string;
+}
+
 interface TrackingInfo {
-  ShipmentData?: {
-    Shipment?: Array<{
-      Status?: string;
-      CurrentLocation?: string;
-      ExpectedDeliveryDate?: string;
-      EstimatedDeliveryDate?: string;
-      UpdateTime?: string;
-      Picked?: string;
-      Delivered?: string;
-      consignee?: string;
-      destination?: string;
-      origin?: string;
-    }>;
-  };
+  ShipmentData?: Array<{ Shipment?: ShipmentDetail }>;
 }
 
 function EventRow({ event }: { event: TrackingEvent }) {
@@ -67,9 +68,9 @@ export default function TrackPage() {
     }
   };
 
-  const shipment = data?.ShipmentData?.Shipment?.[0];
+  const shipment = data?.ShipmentData?.[0]?.Shipment;
   const status = shipment?.Status || "";
-  const isDelivered = status.toLowerCase().includes("delivered") || status.toLowerCase().includes("completed");
+  const isDelivered = shipment?.StatusType?.toUpperCase() === "DL";
 
   return (
     <div className="min-h-screen bg-gray-50">
