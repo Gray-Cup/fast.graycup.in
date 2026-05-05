@@ -226,7 +226,7 @@ function RowActions({
             </button>
           )}
 
-          {isDispatched && hasWaybill && (
+          {hasWaybill && (
             <button
               onClick={() => { onSyncStatus(); setOpen(false); }}
               disabled={busy}
@@ -391,7 +391,14 @@ export default function OrdersPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  useEffect(() => { loadOrders(); }, [loadOrders]);
+  useEffect(() => {
+    loadOrders();
+    // Silently sync tracking in background so delivered statuses are always fresh
+    fetch("/api/orders/sync-tracking", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+      .then((r) => r.json())
+      .then((data) => { if (data.updated > 0) loadOrders(); })
+      .catch(() => {});
+  }, [loadOrders]);
 
   const showToast = useCallback((type: "success" | "error", msg: string) => {
     setToast({ type, msg });
