@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (result.success && result.waybill) {
       await db
         .update(schema.orders)
-        .set({ delhiveryWaybill: result.waybill, status: "DISPATCHED" })
+        .set({ delhiveryWaybill: result.waybill, status: "PAID_DISPATCH_PENDING" })
         .where(eq(schema.orders.orderRef, order.orderRef));
       results.push({ orderRef: order.orderRef, waybill: result.waybill });
     } else {

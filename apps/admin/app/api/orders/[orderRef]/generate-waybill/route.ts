@@ -30,9 +30,9 @@ export async function POST(
 
   if (result.success && result.waybill) {
     await db.update(schema.orders)
-      .set({ delhiveryWaybill: result.waybill, status: "DISPATCHED" })
+      .set({ delhiveryWaybill: result.waybill, status: "PAID_DISPATCH_PENDING" })
       .where(eq(schema.orders.orderRef, orderRef));
-    return NextResponse.json({ success: true, waybill: result.waybill, status: "DISPATCHED" });
+    return NextResponse.json({ success: true, waybill: result.waybill, status: "PAID_DISPATCH_PENDING" });
   }
 
   return NextResponse.json({ error: result.error || "Failed to create shipment" }, { status: 502 });

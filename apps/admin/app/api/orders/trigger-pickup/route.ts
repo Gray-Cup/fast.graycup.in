@@ -27,6 +27,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 502 });
   }
 
+  // Update order statuses to DISPATCHED after pickup is triggered
+  await db.update(schema.orders)
+    .set({ status: "DISPATCHED" })
+    .where(inArray(schema.orders.orderRef, orderRefs));
+
   return NextResponse.json({
     success: true,
     pickupId: result.pickupId,

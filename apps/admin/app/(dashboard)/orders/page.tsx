@@ -24,7 +24,7 @@ type Order = {
   createdAt: string;
 };
 
-type Filter = "all" | "unfulfilled" | "dispatched" | "delivered";
+type Filter = "all" | "unfulfilled" | "pickup-awaiting" | "in-transit" | "delivered";
 type SortKey = "newest" | "oldest" | "amount-desc" | "amount-asc";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -32,7 +32,7 @@ const STATUS_COLORS: Record<string, string> = {
   EXPIRED: "bg-gray-100 text-gray-500",
   PAID: "bg-blue-100 text-blue-800",
   PAID_DISPATCH_PENDING: "bg-orange-100 text-orange-800",
-  DISPATCHED: "bg-purple-100 text-purple-800",
+  DISPATCHED: "bg-cyan-100 text-cyan-800",
   DELIVERED: "bg-green-100 text-green-800",
   RETURNED: "bg-red-100 text-red-700",
   CANCELLED: "bg-gray-200 text-gray-600",
@@ -55,11 +55,20 @@ function StatusBadge({ status, createdAt }: { status: string; createdAt: string 
   const ds = displayStatus(status, createdAt);
   const colorClass = STATUS_COLORS[ds] || "bg-gray-100 text-gray-600";
 
+  if (ds === "PAID_DISPATCH_PENDING") {
+    return (
+      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${colorClass}`}>
+        Pickup Pending
+        <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />
+      </span>
+    );
+  }
+
   if (ds === "DISPATCHED") {
     return (
       <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${colorClass}`}>
-        Pickup
-        <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse shrink-0" />
+        In Transit
+        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
       </span>
     );
   }
@@ -191,9 +200,9 @@ function RowActions({
   }, [open]);
 
   const normalizedStatus = normalizeStatus(order.status);
-  const canCreateWaybill = ["PAID", "PAID_DISPATCH_PENDING"].includes(normalizedStatus);
+  const canCreateWaybill = ["PAID"].includes(normalizedStatus);
   const hasWaybill = !!order.delhiveryWaybill;
-  const isDispatched = normalizedStatus === "DISPATCHED";
+  const isPickupAwaiting = normalizedStatus === "PAID_DISPATCH_PENDING";
 
   return (
     <div ref={ref} className="relative">
@@ -223,7 +232,7 @@ function RowActions({
             </button>
           )}
 
-          {isDispatched && hasWaybill && (
+          {isPickupAwaiting && hasWaybill && (
             <button
               onClick={() => { onTriggerPickup(); setOpen(false); }}
               disabled={busy}
@@ -253,7 +262,7 @@ function RowActions({
             </button>
           )}
 
-          {isDispatched && hasWaybill && (
+          {isPickupAwaiting && hasWaybill && (
             <button
               onClick={() => { onCancel(); setOpen(false); }}
               disabled={busy}
@@ -375,7 +384,8 @@ function Toast({ type, msg }: { type: "success" | "error"; msg: string }) {
 const FILTERS: { key: Filter; label: string }[] = [
   { key: "all", label: "All" },
   { key: "unfulfilled", label: "Unfulfilled" },
-  { key: "dispatched", label: "In Transit" },
+  { key: "pickup-awaiting", label: "Pickup Awaiting" },
+  { key: "in-transit", label: "In Transit" },
   { key: "delivered", label: "Delivered" },
 ];
 
@@ -416,7 +426,8 @@ export default function OrdersPage() {
     .filter((o) => {
       const status = normalizeStatus(o.status);
       if (filter === "unfulfilled") return ["PAID", "PAID_DISPATCH_PENDING"].includes(status);
-      if (filter === "dispatched") return status === "DISPATCHED";
+      if (filter === "pickup-awaiting") return status === "PAID_DISPATCH_PENDING";
+      if (filter === "in-transit") return status === "DISPATCHED";
       if (filter === "delivered") return status === "DELIVERED";
       return true;
     })
