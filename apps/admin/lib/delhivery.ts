@@ -166,11 +166,22 @@ export function mapDelhiveryStatus(statusType: string): string | null {
   const normalized = statusType?.trim().toUpperCase();
   if (!normalized) return null;
 
-  if (normalized === "DL" || normalized.includes("DL") || normalized.includes("DELIVERED")) {
+  if (normalized === "DL" || normalized.includes("DELIVERED")) {
     return "DELIVERED";
   }
   if (normalized === "RT" || normalized === "DTO" || normalized.includes("RTO") || normalized.includes("RETURN")) {
     return "RETURNED";
+  }
+  // PKD = picked up by Delhivery, IT = in transit, OFD = out for delivery
+  if (
+    normalized === "PKD" ||
+    normalized === "IT" ||
+    normalized === "OFD" ||
+    normalized.includes("TRANSIT") ||
+    normalized.includes("INTRANSIT") ||
+    normalized.includes("PICKED")
+  ) {
+    return "DISPATCHED";
   }
   return null;
 }
