@@ -480,7 +480,7 @@ function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
 
       {/* Success rate */}
       <div className="bg-white rounded-2xl border border-gray-200 p-4 flex flex-col gap-3">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Success Rate</p>
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Conversion Rate</p>
         <p className="text-[26px] font-black leading-none text-gray-900">{successPct}%</p>
         <div className="h-1 rounded-full bg-gray-100 overflow-hidden">
           <div className="h-full rounded-full bg-teal-500 transition-all duration-700" style={{ width: `${successPct}%` }} />
