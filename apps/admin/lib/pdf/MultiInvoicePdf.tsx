@@ -48,6 +48,7 @@ function InvoicePage({ data }: { data: InvoiceData }) {
           <Text style={s.invNum}>{data.invoiceNumber}</Text>
           <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: "#1a1a1a", marginBottom: 2 }}>Order #{data.orderNumber}</Text>
           <Text style={s.invSmall}>{data.orderRef}</Text>
+          {data.cashfreeOrderId ? <Text style={s.invSmall}>Cashfree: {data.cashfreeOrderId}</Text> : null}
           <Text style={s.invSmall}>{data.date}</Text>
         </View>
       </View>

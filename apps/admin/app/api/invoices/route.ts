@@ -78,6 +78,7 @@ export async function POST(req: NextRequest) {
         amount: o.amount,
         gstAmount: o.gstAmount,
         batchId: o.batchId,
+        cashfreeOrderId: o.cashfreeOrderId,
       }));
 
       pdf = await renderToBuffer(

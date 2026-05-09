@@ -7,6 +7,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: "⊞" },
   { href: "/orders", label: "Orders", icon: "☰" },
   { href: "/invoices", label: "Invoices", icon: "📄" },
+  { href: "/manual-invoice", label: "Manual Invoice", icon: "✍️" },
   { href: "/documents", label: "Documents", icon: "📁" },
   { href: "/label-merge", label: "Label Merge", icon: "🏷️" },
 ];

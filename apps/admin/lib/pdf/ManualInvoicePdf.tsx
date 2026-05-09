@@ -1,5 +1,22 @@
 import React from "react";
-import { Document, Page, View, Text, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
+
+export interface ManualInvoiceData {
+  invoiceNumber: string;
+  date: string;
+  buyerName: string;
+  buyerPhone: string;
+  buyerEmail?: string | null;
+  buyerAddress: string;
+  buyerPincode: string;
+  itemDescription: string;
+  itemVariant?: string | null;
+  quantity: number;
+  amount: number;
+  gstAmount: number;
+  upiTransactionId: string;
+  upiScreenshotDataUri?: string | null;
+}
 
 const c = {
   black: "#000000",
@@ -8,6 +25,8 @@ const c = {
   muted: "#888888",
   border: "#e0e0e0",
   bg: "#f7f7f7",
+  upi: "#1a73e8",
+  upiBg: "#f0f7ff",
 };
 
 const s = StyleSheet.create({
@@ -17,7 +36,7 @@ const s = StyleSheet.create({
   company: { fontSize: 14, fontFamily: "Helvetica-Bold", color: c.black, marginBottom: 4 },
   addr: { fontSize: 7.5, color: c.gray, marginBottom: 1.5 },
   hRight: { alignItems: "flex-end" },
-  taxLabel: { fontSize: 6.5, color: c.muted, letterSpacing: 1, marginBottom: 3 },
+  manualLabel: { fontSize: 6.5, color: "#c05000", letterSpacing: 1, marginBottom: 3 },
   invNum: { fontSize: 12, fontFamily: "Helvetica-Bold", color: c.black, marginBottom: 2 },
   invSmall: { fontSize: 7.5, color: c.gray, marginBottom: 1 },
 
@@ -38,32 +57,18 @@ const s = StyleSheet.create({
   totLabel: { fontSize: 8, color: c.gray },
   totVal: { fontSize: 8, color: c.dark },
   divider: { borderTop: `1 solid ${c.dark}`, marginVertical: 4 },
-  totFinalLabel: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: c.black },
-  totFinalVal: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: c.black },
+  totFinal: { fontSize: 10.5, fontFamily: "Helvetica-Bold", color: c.black },
+
+  upiSection: { backgroundColor: c.upiBg, padding: 12, borderRadius: 3, marginBottom: 16 },
+  upiLabel: { fontSize: 6.5, color: c.upi, letterSpacing: 1, marginBottom: 5 },
+  upiTxnId: { fontSize: 12, fontFamily: "Helvetica-Bold", color: c.upi, marginBottom: 3 },
+  upiSmall: { fontSize: 7.5, color: c.gray },
+  screenshot: { width: 160, height: 200, objectFit: "contain", marginTop: 10, borderRadius: 3, alignSelf: "flex-start" },
 
   footer: { position: "absolute", bottom: 28, left: 44, right: 44, textAlign: "center", fontSize: 7, color: c.muted, borderTop: `1 solid ${c.border}`, paddingTop: 7 },
 });
 
-export interface InvoiceData {
-  orderNumber: number;
-  invoiceNumber: string;
-  orderRef: string;
-  date: string;
-  customerName: string;
-  customerPhone: string;
-  customerEmail?: string | null;
-  customerAddress: string;
-  customerPincode: string;
-  productName: string;
-  variantLabel: string;
-  quantity: number;
-  amount: number;
-  gstAmount: number;
-  batchId?: string | null;
-  cashfreeOrderId?: string | null;
-}
-
-export function InvoicePdf({ data }: { data: InvoiceData }) {
+export function ManualInvoicePdf({ data }: { data: ManualInvoiceData }) {
   const subtotal = data.amount - data.gstAmount;
   const cgst = Math.round(data.gstAmount / 2);
   const sgst = data.gstAmount - cgst;
@@ -79,22 +84,19 @@ export function InvoicePdf({ data }: { data: InvoiceData }) {
             <Text style={s.addr}>GSTIN: 06AAMCG4985H1Z4  ·  office@graycup.org</Text>
           </View>
           <View style={s.hRight}>
-            <Text style={s.taxLabel}>TAX INVOICE</Text>
+            <Text style={s.manualLabel}>MANUAL TAX INVOICE</Text>
             <Text style={s.invNum}>{data.invoiceNumber}</Text>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: c.dark, marginBottom: 2 }}>Order #{data.orderNumber}</Text>
-            <Text style={s.invSmall}>{data.orderRef}</Text>
-            {data.cashfreeOrderId ? <Text style={s.invSmall}>Cashfree: {data.cashfreeOrderId}</Text> : null}
             <Text style={s.invSmall}>{data.date}</Text>
           </View>
         </View>
 
         <Text style={s.secLabel}>BILL TO</Text>
         <View style={s.billBox}>
-          <Text style={s.custName}>{data.customerName}</Text>
-          <Text style={s.custDetail}>{data.customerAddress}</Text>
-          <Text style={s.custDetail}>Pincode: {data.customerPincode}</Text>
-          <Text style={s.custDetail}>{data.customerPhone}</Text>
-          {data.customerEmail ? <Text style={s.custDetail}>{data.customerEmail}</Text> : null}
+          <Text style={s.custName}>{data.buyerName}</Text>
+          <Text style={s.custDetail}>{data.buyerAddress}</Text>
+          <Text style={s.custDetail}>Pincode: {data.buyerPincode}</Text>
+          <Text style={s.custDetail}>{data.buyerPhone}</Text>
+          {data.buyerEmail ? <Text style={s.custDetail}>{data.buyerEmail}</Text> : null}
         </View>
 
         <Text style={s.secLabel}>ITEMS</Text>
@@ -105,8 +107,8 @@ export function InvoicePdf({ data }: { data: InvoiceData }) {
           <Text style={[s.thCell, s.c4]}>Amount</Text>
         </View>
         <View style={s.tRow}>
-          <Text style={[s.tdCell, s.c1]}>{data.productName}{data.batchId ? ` · Batch ${data.batchId}` : ""}</Text>
-          <Text style={[s.tdCell, s.c2]}>{data.variantLabel}</Text>
+          <Text style={[s.tdCell, s.c1]}>{data.itemDescription}</Text>
+          <Text style={[s.tdCell, s.c2]}>{data.itemVariant || "—"}</Text>
           <Text style={[s.tdCell, s.c3]}>{data.quantity}</Text>
           <Text style={[s.tdCell, s.c4]}>Rs. {subtotal}</Text>
         </View>
@@ -127,14 +129,24 @@ export function InvoicePdf({ data }: { data: InvoiceData }) {
             </View>
             <View style={s.divider} />
             <View style={s.totRow}>
-              <Text style={s.totFinalLabel}>Total</Text>
-              <Text style={s.totFinalVal}>Rs. {data.amount}</Text>
+              <Text style={s.totFinal}>Total</Text>
+              <Text style={s.totFinal}>Rs. {data.amount}</Text>
             </View>
           </View>
         </View>
 
+        <Text style={s.secLabel}>PAYMENT</Text>
+        <View style={s.upiSection}>
+          <Text style={s.upiLabel}>UPI TRANSACTION ID</Text>
+          <Text style={s.upiTxnId}>{data.upiTransactionId}</Text>
+          <Text style={s.upiSmall}>Paid via UPI · {data.date}</Text>
+          {data.upiScreenshotDataUri ? (
+            <Image style={s.screenshot} src={data.upiScreenshotDataUri} />
+          ) : null}
+        </View>
+
         <Text style={s.footer}>
-          Computer-generated invoice · Gray Cup Enterprises · GSTIN: 06AAMCG4985H1Z4
+          Manual invoice · Gray Cup Enterprises · GSTIN: 06AAMCG4985H1Z4
         </Text>
       </Page>
     </Document>

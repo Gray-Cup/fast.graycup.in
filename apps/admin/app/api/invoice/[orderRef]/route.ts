@@ -44,6 +44,7 @@ export async function GET(
         amount: o.amount,
         gstAmount: o.gstAmount,
         batchId: o.batchId,
+        cashfreeOrderId: o.cashfreeOrderId,
       },
     }) as React.ReactElement<any>
   );
