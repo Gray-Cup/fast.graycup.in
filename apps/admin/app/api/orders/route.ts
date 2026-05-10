@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { db, schema, sql } from "@graycup/db";
+import { db, schema, sql, ensureOrdersColumns } from "@graycup/db";
 import { desc, getTableColumns } from "drizzle-orm";
 
 export async function GET() {
   try {
+    await ensureOrdersColumns();
     const rows = await db
       .select({
         ...getTableColumns(schema.orders),

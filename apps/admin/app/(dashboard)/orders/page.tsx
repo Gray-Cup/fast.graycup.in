@@ -19,7 +19,6 @@ type Order = {
   customerPincode: string;
   status: string;
   delhiveryWaybill: string | null;
-  delhiveryPickupDate: string | null;
   invoiceKey: string | null;
   invoiceNumber: string | null;
   createdAt: string;
@@ -53,35 +52,24 @@ function displayStatus(status: string, createdAt: string) {
   return normalized || status;
 }
 
-function StatusBadge({ status, createdAt, hasWaybill, pickupDate }: { status: string; createdAt: string; hasWaybill?: boolean; pickupDate?: string | null }) {
+function StatusBadge({ status, createdAt, hasWaybill }: { status: string; createdAt: string; hasWaybill?: boolean }) {
   const ds = displayStatus(status, createdAt);
   const colorClass = STATUS_COLORS[ds] || "bg-gray-100 text-gray-600";
 
   if (ds === "PAID_DISPATCH_PENDING") {
-    if (hasWaybill && pickupDate) {
-      // Pickup has been scheduled
-      return (
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-800">
-          Pickup Soon
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-        </span>
-      );
-    } else if (hasWaybill) {
-      // Waybill exists but pickup not scheduled yet
+    if (hasWaybill) {
       return (
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full bg-orange-100 text-orange-800">
           Trigger Pickup
           <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />
         </span>
       );
-    } else {
-      // No waybill yet
-      return (
-        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${colorClass}`}>
-          Pickup Pending
-        </span>
-      );
     }
+    return (
+      <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${colorClass}`}>
+        Pickup Pending
+      </span>
+    );
   }
 
   if (ds === "DISPATCHED") {
@@ -137,7 +125,6 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
               status={order.status}
               createdAt={order.createdAt}
               hasWaybill={Boolean(order.delhiveryWaybill)}
-              pickupDate={order.delhiveryPickupDate}
             />
             <span className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString("en-IN")}</span>
           </div>
@@ -899,7 +886,6 @@ export default function OrdersPage() {
                       status={o.status}
                       createdAt={o.createdAt}
                       hasWaybill={Boolean(o.delhiveryWaybill)}
-                      pickupDate={o.delhiveryPickupDate}
                     />
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">{o.delhiveryWaybill || "—"}</td>

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, schema } from "@graycup/db";
+import { db, schema, ensureOrdersColumns } from "@graycup/db";
 import { and, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
 import { trackMultipleShipments, mapDelhiveryStatus } from "@/lib/delhivery";
 
 const TERMINAL_STATUSES = ["DELIVERED", "RETURNED", "CANCELLED"];
 
 export async function POST(req: NextRequest) {
+  await ensureOrdersColumns();
   const body = await req.json().catch(() => ({}));
   const { orderRefs } = body as { orderRefs?: string[] };
 
@@ -37,21 +38,10 @@ export async function POST(req: NextRequest) {
     if (!info) continue;
 
     const newStatus = mapDelhiveryStatus(info.statusType, info.mainStatus);
-    let updateData: any = {};
-    
     if (newStatus && newStatus !== order.status) {
-      updateData.status = newStatus;
-    }
-    
-    // Store pickup date if available
-    if (info.pickupDate && !order.delhiveryPickupDate) {
-      updateData.delhiveryPickupDate = info.pickupDate;
-    }
-
-    if (Object.keys(updateData).length > 0) {
       await db
         .update(schema.orders)
-        .set(updateData)
+        .set({ status: newStatus })
         .where(eq(schema.orders.orderRef, order.orderRef));
       updated++;
     }

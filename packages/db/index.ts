@@ -23,6 +23,17 @@ export const db = new Proxy({} as ReturnType<typeof drizzle>, {
 
 export { sql, eq, desc, inArray, schema };
 
+/** Align live DB with Drizzle schema when new nullable columns are added (avoids broken SELECTs). */
+let ensureOrdersColumnsPromise: Promise<void> | null = null;
+export function ensureOrdersColumns(): Promise<void> {
+  if (!ensureOrdersColumnsPromise) {
+    ensureOrdersColumnsPromise = (async () => {
+      await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS batch_id TEXT`);
+    })();
+  }
+  return ensureOrdersColumnsPromise;
+}
+
 export async function generateOrderRef(): Promise<string> {
   const timestamp = Date.now().toString(36).toUpperCase();
   const randomPart = randomBytes(3).toString("hex").toUpperCase();
