@@ -78,7 +78,7 @@ function InvoicePage({ data }: { data: InvoiceData }) {
 
       <View style={s.totals}>
         <View style={s.totBox}>
-          <View style={s.totRow}><Text style={s.totLabel}>Taxable Value</Text><Text style={s.totVal}>Rs. {subtotal}</Text></View>
+          <View style={s.totRow}><Text style={s.totLabel}>Taxable Value (GST Inclusive)</Text><Text style={s.totVal}>Rs. {subtotal}</Text></View>
           <View style={s.totRow}><Text style={s.totLabel}>CGST @ 2.5%</Text><Text style={s.totVal}>Rs. {cgst}</Text></View>
           <View style={s.totRow}><Text style={s.totLabel}>SGST @ 2.5%</Text><Text style={s.totVal}>Rs. {sgst}</Text></View>
           <View style={s.divider} />

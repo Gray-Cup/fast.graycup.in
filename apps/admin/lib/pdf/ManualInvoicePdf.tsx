@@ -116,7 +116,7 @@ export function ManualInvoicePdf({ data }: { data: ManualInvoiceData }) {
         <View style={s.totals}>
           <View style={s.totBox}>
             <View style={s.totRow}>
-              <Text style={s.totLabel}>Taxable Value</Text>
+              <Text style={s.totLabel}>Taxable Value (GST Inclusive)</Text>
               <Text style={s.totVal}>Rs. {subtotal}</Text>
             </View>
             <View style={s.totRow}>

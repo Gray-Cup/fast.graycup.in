@@ -69,7 +69,7 @@ export function GstSummaryPdf({ rows, date }: { rows: GstRow[]; date: string }) 
 
         <View style={s.statsRow}>
           <View style={s.stat}>
-            <Text style={s.statLabel}>TAXABLE VALUE</Text>
+              <Text style={s.statLabel}>TAXABLE VALUE (GST INCLUSIVE)</Text>
             <Text style={s.statVal}>Rs. {totalBase}</Text>
           </View>
           <View style={s.stat}>
