@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-type Order = { id: number; orderNumber: number; orderRef: string; status: string; amount: number; createdAt: string };
+type Order = { id: number; orderNumber: number; orderRef: string; status: string; amount: number; variantLabel: string; quantity: number; createdAt: string };
 type Period = "today" | "week" | "lifetime";
 type PatternTab = "hour" | "weekday" | "month";
 
@@ -56,7 +56,11 @@ function ttOn(set: React.Dispatch<React.SetStateAction<TT>>, text: string) {
 function normalizeStatus(status: string) {
   return status?.trim().toUpperCase();
 }
-
+// Extract 150gm packet count from variantLabel (e.g. "150gm x 2" -> 2)
+function get150gmPackets(variantLabel: string): number {
+  const match = variantLabel?.match(/150gm\s*x\s*(\d+)/i);
+  return match ? parseInt(match[1], 10) : 0;
+}
 function filterOrders(orders: Order[], period: Period): Order[] {
   if (period === "today") {
     const today = new Date().toISOString().slice(0, 10);
@@ -429,6 +433,10 @@ function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
   const dispatched = o.filter((x) => normalizeStatus(x.status) === "DISPATCHED").length;
   const delivered = o.filter((x) => normalizeStatus(x.status) === "DELIVERED").length;
 
+  // Calculate 150gm packets and total weight
+  const packets150gm = successful.reduce((sum, order) => sum + get150gmPackets(order.variantLabel), 0);
+  const weight150gm = (packets150gm * 150) / 1000; // Convert to kg
+
   const successPct = total === 0 ? 0 : Math.round((successful.length / total) * 100);
   const expiredPct = total === 0 ? 0 : 100 - successPct;
 
@@ -439,6 +447,7 @@ function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
     { label: "Awaiting", value: paid, sub: "to dispatch", color: "bg-orange-400", track: "bg-orange-50", num: paid },
     { label: "In Transit", value: dispatched, sub: "with courier", color: "bg-violet-500", track: "bg-violet-50", num: dispatched },
     { label: "Delivered", value: delivered, sub: "completed", color: "bg-green-500", track: "bg-green-50", num: delivered },
+    { label: "Weight (150gm)", value: `${weight150gm.toFixed(1)}kg`, sub: `${packets150gm} packets sold`, color: "bg-amber-500", track: "bg-amber-50", num: weight150gm },
   ];
 
   return (
