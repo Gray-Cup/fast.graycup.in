@@ -60,7 +60,6 @@ function StatusBadge({ status, createdAt }: { status: string; createdAt: string 
     return (
       <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${colorClass}`}>
         Pickup Pending
-        <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />
       </span>
     );
   }
@@ -69,7 +68,6 @@ function StatusBadge({ status, createdAt }: { status: string; createdAt: string 
     return (
       <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full ${colorClass}`}>
         In Transit
-        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse shrink-0" />
       </span>
     );
   }

@@ -495,7 +495,7 @@ function StatCards({ orders, period }: { orders: Order[]; period: Period }) {
 
 const STATUS_DOT: Record<string, string> = {
   PENDING: "bg-yellow-400", EXPIRED: "bg-gray-300", PAID: "bg-blue-500",
-  PAID_DISPATCH_PENDING: "bg-orange-400", DISPATCHED: "bg-violet-500 animate-pulse",
+  PAID_DISPATCH_PENDING: "bg-orange-400", DISPATCHED: "bg-violet-500",
   DELIVERED: "bg-green-500", RETURNED: "bg-red-400", CANCELLED: "bg-gray-300",
 };
 
