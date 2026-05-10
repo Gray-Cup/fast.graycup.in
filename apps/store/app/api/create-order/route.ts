@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
+import { ensureOrdersColumns } from "@graycup/db";
 import { db, generateOrderRef } from "@/lib/db";
 import { orders } from "@/lib/db/schema";
 import { getPincodeDetails } from "@/lib/delhivery";
@@ -40,6 +41,48 @@ interface OrderPayload {
   };
 }
 
+function computeOrderWeights(body: OrderPayload): {
+  weightCategory: string;
+  unitWeightGrams: number;
+  totalWeightGrams: number;
+} | null {
+  if (body.items && body.items.length > 0) {
+    let totalGrams = 0;
+    const labels = new Set<string>();
+    for (const item of body.items) {
+      const product = products.find((p) => p.id === item.productId);
+      if (!product) return null;
+      const variant = product.variants.find((v) => v.label === item.variantLabel);
+      if (!variant) return null;
+      totalGrams += variant.weightGrams * item.quantity;
+      labels.add(variant.label);
+    }
+    const weightCategory =
+      labels.size === 1 ? [...labels][0] : [...labels].sort().join("+");
+    const totalQty = body.items.reduce((s, i) => s + i.quantity, 0);
+    const first = body.items[0];
+    const unitWeightGrams =
+      body.items.length === 1
+        ? products.find((p) => p.id === first.productId)!.variants.find(
+            (v) => v.label === first.variantLabel
+          )!.weightGrams
+        : Math.round(totalGrams / totalQty) || 150;
+    return { weightCategory, unitWeightGrams, totalWeightGrams: totalGrams };
+  }
+  if (body.productId && body.variantLabel && body.quantity) {
+    const product = products.find((p) => p.id === body.productId);
+    if (!product) return null;
+    const variant = product.variants.find((v) => v.label === body.variantLabel);
+    if (!variant) return null;
+    return {
+      weightCategory: variant.label,
+      unitWeightGrams: variant.weightGrams,
+      totalWeightGrams: variant.weightGrams * body.quantity,
+    };
+  }
+  return null;
+}
+
 function computeAmount(payload: OrderPayload): number | null {
   if (payload.items && payload.items.length > 0) {
     let total = 0;
@@ -75,7 +118,8 @@ export async function POST(req: NextRequest) {
     const batchId = body.batchId ?? items?.[0]?.batchId ?? null;
 
     const amount = computeAmount(body);
-    if (!amount) {
+    const weights = computeOrderWeights(body);
+    if (!amount || !weights) {
       return NextResponse.json({ error: "Invalid product or variant" }, { status: 400 });
     }
 
@@ -144,12 +188,16 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+      await ensureOrdersColumns();
       await db.insert(orders).values({
         orderRef,
         cashfreeOrderId: cfData.cf_order_id || orderRef,
         productId,
         productName,
         variantLabel,
+        weightCategory: weights.weightCategory,
+        unitWeightGrams: weights.unitWeightGrams,
+        totalWeightGrams: weights.totalWeightGrams,
         quantity,
         amount,
         gstAmount: gstAmt,

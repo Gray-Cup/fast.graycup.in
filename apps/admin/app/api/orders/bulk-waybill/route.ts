@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@graycup/db";
 import { eq, inArray } from "drizzle-orm";
 import { createShipment, getPincodeDetails } from "@/lib/delhivery";
+import { delhiveryWeightKg } from "@/lib/orderWeight";
 
 export async function POST(req: NextRequest) {
   const { orderRefs } = await req.json();
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       state: pincodeInfo?.state || "",
       productDesc: `${order.productName} ${order.variantLabel} x${order.quantity}`,
       totalAmount: order.amount,
-      weightKg: 0.5,
+      weightKg: delhiveryWeightKg(order),
     });
 
     if (result.success && result.waybill) {

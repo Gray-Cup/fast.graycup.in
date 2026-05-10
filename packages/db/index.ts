@@ -23,12 +23,22 @@ export const db = new Proxy({} as ReturnType<typeof drizzle>, {
 
 export { sql, eq, desc, inArray, schema };
 
-/** Align live DB with Drizzle schema when new nullable columns are added (avoids broken SELECTs). */
+/** Ensure orders table columns exist (batch, pickup date, weight). Safe on every admin/store request. */
 let ensureOrdersColumnsPromise: Promise<void> | null = null;
 export function ensureOrdersColumns(): Promise<void> {
   if (!ensureOrdersColumnsPromise) {
     ensureOrdersColumnsPromise = (async () => {
       await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS batch_id TEXT`);
+      await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delhivery_pickup_date TEXT`);
+      await db.execute(
+        sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS weight_category TEXT NOT NULL DEFAULT '150gm'`
+      );
+      await db.execute(
+        sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS unit_weight_grams INTEGER NOT NULL DEFAULT 150`
+      );
+      await db.execute(
+        sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS total_weight_grams INTEGER NOT NULL DEFAULT 150`
+      );
     })();
   }
   return ensureOrdersColumnsPromise;

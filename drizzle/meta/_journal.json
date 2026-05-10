@@ -8,6 +8,20 @@
       "when": 1777586406629,
       "tag": "0000_worried_omega_red",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777586406630,
+      "tag": "0001_order_shipping_extras",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777586406631,
+      "tag": "0002_order_weight",
+      "breakpoints": true
     }
   ]
 }

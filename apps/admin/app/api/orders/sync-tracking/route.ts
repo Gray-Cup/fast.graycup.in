@@ -38,10 +38,19 @@ export async function POST(req: NextRequest) {
     if (!info) continue;
 
     const newStatus = mapDelhiveryStatus(info.statusType, info.mainStatus);
+    const updateData: Partial<typeof schema.orders.$inferInsert> = {};
+
     if (newStatus && newStatus !== order.status) {
+      updateData.status = newStatus;
+    }
+    if (info.pickupDate && !order.delhiveryPickupDate) {
+      updateData.delhiveryPickupDate = info.pickupDate;
+    }
+
+    if (Object.keys(updateData).length > 0) {
       await db
         .update(schema.orders)
-        .set({ status: newStatus })
+        .set(updateData)
         .where(eq(schema.orders.orderRef, order.orderRef));
       updated++;
     }

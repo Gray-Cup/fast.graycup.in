@@ -9,6 +9,9 @@ type Order = {
   orderRef: string;
   productName: string;
   variantLabel: string;
+  weightCategory?: string;
+  unitWeightGrams?: number;
+  totalWeightGrams?: number;
   quantity: number;
   amount: number;
   gstAmount: number;
@@ -19,6 +22,7 @@ type Order = {
   customerPincode: string;
   status: string;
   delhiveryWaybill: string | null;
+  delhiveryPickupDate: string | null;
   invoiceKey: string | null;
   invoiceNumber: string | null;
   createdAt: string;
@@ -52,11 +56,19 @@ function displayStatus(status: string, createdAt: string) {
   return normalized || status;
 }
 
-function StatusBadge({ status, createdAt, hasWaybill }: { status: string; createdAt: string; hasWaybill?: boolean }) {
+function StatusBadge({ status, createdAt, hasWaybill, pickupDate }: { status: string; createdAt: string; hasWaybill?: boolean; pickupDate?: string | null }) {
   const ds = displayStatus(status, createdAt);
   const colorClass = STATUS_COLORS[ds] || "bg-gray-100 text-gray-600";
 
   if (ds === "PAID_DISPATCH_PENDING") {
+    if (hasWaybill && pickupDate) {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-800">
+          Pickup Soon
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+        </span>
+      );
+    }
     if (hasWaybill) {
       return (
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-full bg-orange-100 text-orange-800">
@@ -125,6 +137,7 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
               status={order.status}
               createdAt={order.createdAt}
               hasWaybill={Boolean(order.delhiveryWaybill)}
+              pickupDate={order.delhiveryPickupDate}
             />
             <span className="text-xs text-gray-400">{new Date(order.createdAt).toLocaleString("en-IN")}</span>
           </div>
@@ -164,6 +177,16 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
                 <span className="text-gray-700">{order.productName} · {order.variantLabel} ×{order.quantity}</span>
                 <span className="font-bold text-gray-900">₹{order.amount}</span>
               </div>
+              {(order.totalWeightGrams != null && order.totalWeightGrams > 0) || order.weightCategory ? (
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>Weight ({order.weightCategory ?? "—"})</span>
+                  <span className="font-medium text-gray-700">
+                    {order.totalWeightGrams != null && order.totalWeightGrams > 0
+                      ? `${order.totalWeightGrams.toLocaleString("en-IN")} g total`
+                      : "—"}
+                  </span>
+                </div>
+              ) : null}
               <div className="flex justify-between text-xs text-gray-400 border-t border-gray-200 pt-2 mt-1">
                 <span>GST (incl.)</span>
                 <span>₹{order.gstAmount}</span>
@@ -886,6 +909,7 @@ export default function OrdersPage() {
                       status={o.status}
                       createdAt={o.createdAt}
                       hasWaybill={Boolean(o.delhiveryWaybill)}
+                      pickupDate={o.delhiveryPickupDate}
                     />
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">{o.delhiveryWaybill || "—"}</td>
