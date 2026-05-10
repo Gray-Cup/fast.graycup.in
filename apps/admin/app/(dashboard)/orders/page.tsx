@@ -222,7 +222,7 @@ function RowActions({
         onClick={() => setOpen((v) => !v)}
         className="text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg transition-colors"
       >
-        Actions ▾
+        Actions
       </button>
 
       {open && (
