@@ -32,8 +32,8 @@ const s = StyleSheet.create({
 
 function InvoicePage({ data }: { data: InvoiceData }) {
   const subtotal = data.amount - data.gstAmount;
-  const cgst = Math.round(data.gstAmount / 2);
-  const sgst = data.gstAmount - cgst;
+  const cgst = data.gstAmount / 2;
+  const sgst = data.gstAmount / 2;
   return (
     <Page size="A4" style={s.page}>
       <View style={s.header}>

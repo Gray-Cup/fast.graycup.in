@@ -57,8 +57,8 @@ export function GstSummaryPdf({ rows, date }: { rows: GstRow[]; date: string }) 
   const totalAmt = rows.reduce((s, r) => s + r.amount, 0);
   const totalGst = rows.reduce((s, r) => s + r.gstAmount, 0);
   const totalBase = totalAmt - totalGst;
-  const totalCgst = Math.round(totalGst / 2);
-  const totalSgst = totalGst - totalCgst;
+  const totalCgst = totalGst / 2;
+  const totalSgst = totalGst / 2;
 
   return (
     <Document>

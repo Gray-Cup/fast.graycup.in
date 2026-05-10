@@ -65,8 +65,8 @@ export interface InvoiceData {
 
 export function InvoicePdf({ data }: { data: InvoiceData }) {
   const subtotal = data.amount - data.gstAmount;
-  const cgst = Math.round(data.gstAmount / 2);
-  const sgst = data.gstAmount - cgst;
+  const cgst = data.gstAmount / 2;
+  const sgst = data.gstAmount / 2;
 
   return (
     <Document>
