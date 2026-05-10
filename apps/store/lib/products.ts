@@ -20,12 +20,8 @@ export interface Product {
 
 export const GST_RATE = 0.05; // Tea and coffee: 5% GST
 
-export function gstAmount(inclusivePrice: number): number {
-  return Math.round(inclusivePrice - inclusivePrice / (1 + GST_RATE));
-}
-
-export function basePrice(inclusivePrice: number): number {
-  return Math.round(inclusivePrice / (1 + GST_RATE));
+export function gstAmount(price: number): number {
+  return Math.round(price * GST_RATE);
 }
 
 export function getProductBySlug(slug: string): Product | undefined {

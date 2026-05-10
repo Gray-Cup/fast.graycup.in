@@ -44,7 +44,7 @@ export default function ManualInvoicePage() {
   function autoGst(amountStr: string) {
     const amt = parseInt(amountStr);
     if (!isNaN(amt) && amt > 0) {
-      return String(Math.round(amt * 5 / 105));
+      return String(Math.round(amt * 5 / 100));
     }
     return "";
   }

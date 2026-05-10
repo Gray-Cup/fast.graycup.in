@@ -56,9 +56,9 @@ export interface GstRow {
 export function GstSummaryPdf({ rows, date }: { rows: GstRow[]; date: string }) {
   const totalAmt = rows.reduce((s, r) => s + r.amount, 0);
   const totalGst = rows.reduce((s, r) => s + r.gstAmount, 0);
-  const totalBase = totalAmt - totalGst;
-  const totalCgst = totalGst / 2;
-  const totalSgst = totalGst / 2;
+  const totalBase = totalAmt;
+  const totalCgst = totalAmt * 0.025;
+  const totalSgst = totalAmt * 0.025;
 
   return (
     <Document>

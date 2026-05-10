@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { getProductBySlug, products, gstAmount, basePrice } from "@/lib/products";
+import { getProductBySlug, products, gstAmount } from "@/lib/products";
 import CheckoutModal from "@/components/CheckoutModal";
 import ProductCard from "@/components/ProductCard";
 
@@ -30,7 +30,6 @@ export default function ProductPageClient({ slug }: { slug: string }) {
   const variant = product.variants[selectedVariant];
   const total = variant.price * quantity;
   const gst = gstAmount(total);
-  const base = basePrice(total);
   const related = products.filter((p) => p.id !== product.id && p.category === product.category).slice(0, 3);
 
   return (
@@ -74,7 +73,7 @@ export default function ProductPageClient({ slug }: { slug: string }) {
                   <span className="text-5xl font-black text-gray-900">₹{total}</span>
                   {quantity > 1 && <span className="text-sm text-gray-500">(₹{variant.price} × {quantity})</span>}
                 </div>
-                <p className="text-xs text-gray-400">Base ₹{base} + GST 5% ₹{gst} = ₹{total} (incl.)</p>
+                <p className="text-xs text-gray-400">Incl. 5% GST (CGST 2.5% + SGST 2.5% = ₹{gst})</p>
               </div>
               <button onClick={() => setShowCheckout(true)}
                 className={`w-full font-black text-xl py-5 rounded-2xl transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 mb-3 ${isCoffee ? "bg-stone-900 hover:bg-stone-800 text-white" : "bg-amber-500 hover:bg-amber-600 text-white"}`}>
