@@ -9,6 +9,7 @@ type StateCount = {
   total_count: number;
   successful_count: number;
   expired_count: number;
+  manual_count: number;
 };
 
 const ID_TO_NAME: Record<string, string> = {
@@ -173,6 +174,7 @@ export default function StateMapClient({ states }: { states: StateCount[] }) {
               display_name: ID_TO_NAME[fid] ?? (f.properties as Record<string, string>)?.name ?? fid,
               successful_count: d?.successful_count ?? 0,
               expired_count: d?.expired_count ?? 0,
+              manual_count: d?.manual_count ?? 0,
               total_count: d?.total_count ?? 0,
             },
           };
@@ -258,6 +260,7 @@ export default function StateMapClient({ states }: { states: StateCount[] }) {
           display_name: string;
           successful_count: number;
           expired_count: number;
+          manual_count: number;
           total_count: number;
         };
 
@@ -269,6 +272,8 @@ export default function StateMapClient({ states }: { states: StateCount[] }) {
             `<div style="font-size:12px;display:flex;flex-direction:column;gap:4px">` +
             `<div style="display:flex;justify-content:space-between;gap:20px">` +
             `<span style="color:#6b7280">Successful</span><span style="font-weight:600;color:#16a34a">${p.successful_count}</span></div>` +
+            `<div style="display:flex;justify-content:space-between;gap:20px">` +
+            `<span style="color:#6b7280">Manual</span><span style="font-weight:600;color:#d97706">${p.manual_count}</span></div>` +
             `<div style="display:flex;justify-content:space-between;gap:20px">` +
             `<span style="color:#6b7280">Expired</span><span style="font-weight:600;color:#dc2626">${p.expired_count}</span></div>` +
             `<div style="display:flex;justify-content:space-between;gap:20px;margin-top:2px;padding-top:4px;border-top:1px solid #f3f4f6">` +
