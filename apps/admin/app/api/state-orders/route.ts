@@ -30,8 +30,8 @@ export async function GET(req: Request) {
   if (endDate) orderWhere.push(sql`created_at < (${endDate}::date + interval '1 day')`);
 
   const manualWhere = [];
-  if (startDate) manualWhere.push(sql`invoice_date >= ${startDate}::date`);
-  if (endDate) manualWhere.push(sql`invoice_date <= ${endDate}::date`);
+  if (startDate) manualWhere.push(sql`invoice_date::date >= ${startDate}::date`);
+  if (endDate) manualWhere.push(sql`invoice_date::date <= ${endDate}::date`);
 
   const ordersResult = await db.execute(sql`
     SELECT customer_pincode, amount
