@@ -20,7 +20,7 @@ const ID_TO_NAME: Record<string, string> = {
   INBR: "Bihar",
   INCH: "Chandigarh",
   INCT: "Chhattisgarh",
-  INDH: "Dadra and Nagar Haveli and Daman and Diu",
+  INDH: "Dadra & Nagar Haveli and Daman & Diu",
   INDL: "Delhi",
   INGA: "Goa",
   INGJ: "Gujarat",
