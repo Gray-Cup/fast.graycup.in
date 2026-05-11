@@ -98,17 +98,10 @@ function choroColor(count: number, max: number): string {
   return "#b91c1c";
 }
 
-const OSM_STYLE: maplibregl.StyleSpecification = {
+const BLANK_STYLE: maplibregl.StyleSpecification = {
   version: 8,
-  sources: {
-    osm: {
-      type: "raster",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-      tileSize: 256,
-      attribution: "© OpenStreetMap contributors",
-    },
-  },
-  layers: [{ id: "osm", type: "raster", source: "osm", paint: { "raster-opacity": 0.35 } }],
+  sources: {},
+  layers: [{ id: "bg", type: "background", paint: { "background-color": "#f1f5f9" } }],
 };
 
 export default function StateMapClient({ states }: { states: StateCount[] }) {
@@ -120,10 +113,11 @@ export default function StateMapClient({ states }: { states: StateCount[] }) {
 
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: OSM_STYLE,
+      style: BLANK_STYLE,
       center: [82, 22],
-      zoom: 4.2,
-      attributionControl: { compact: true },
+      zoom: 4,
+      attributionControl: false,
+      fitBoundsOptions: { padding: 24 },
     });
 
     mapRef.current = map;
@@ -170,6 +164,9 @@ export default function StateMapClient({ states }: { states: StateCount[] }) {
         Math.max(4, Math.ceil(max * 0.65)),   "#ea580c",
         Math.max(5, Math.ceil(max * 0.82)),   "#b91c1c",
       ];
+
+      // Fit to India's bounding box
+      map.fitBounds([[68.1, 6.7], [97.4, 37.1]], { padding: 24, duration: 0 });
 
       map.addSource("states", { type: "geojson", data: augmented });
 
