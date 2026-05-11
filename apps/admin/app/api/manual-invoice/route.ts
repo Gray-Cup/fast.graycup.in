@@ -5,6 +5,7 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { randomBytes } from "crypto";
 import { s3, BUCKET } from "@/lib/s3";
 import { ManualInvoicePdf } from "@/lib/pdf/ManualInvoicePdf";
+import { db, manualInvoices } from "@graycup/db";
 
 function generateManualInvoiceNumber(): string {
   const ts = Date.now().toString(36).toUpperCase();
@@ -65,6 +66,26 @@ export async function POST(req: NextRequest) {
         },
       })
     );
+
+    try {
+      await db.insert(manualInvoices).values({
+        invoiceNumber,
+        buyerName,
+        buyerPhone,
+        buyerEmail: buyerEmail || null,
+        buyerAddress,
+        buyerPincode,
+        itemDescription,
+        itemVariant: itemVariant || null,
+        quantity: Number(quantity) || 1,
+        amount: Number(amount),
+        gstAmount: Number(gstAmount) || 0,
+        upiTransactionId,
+        invoiceDate: date,
+      });
+    } catch (insertError) {
+      console.error("manual invoice DB insert failed:", insertError);
+    }
 
     return NextResponse.json({ invoiceNumber, key, filename });
   } catch (err) {
