@@ -46,6 +46,27 @@ export const documents = pgTable("documents", {
 export type Document = typeof documents.$inferSelect;
 export type NewDocument = typeof documents.$inferInsert;
 
+export const manualInvoices = pgTable("manual_invoices", {
+  id: serial("id").primaryKey(),
+  invoiceNumber: text("invoice_number").unique().notNull(),
+  buyerName: text("buyer_name").notNull(),
+  buyerPhone: text("buyer_phone").notNull(),
+  buyerEmail: text("buyer_email"),
+  buyerAddress: text("buyer_address").notNull(),
+  buyerPincode: text("buyer_pincode").notNull(),
+  itemDescription: text("item_description").notNull(),
+  itemVariant: text("item_variant"),
+  quantity: integer("quantity").notNull().default(1),
+  amount: integer("amount").notNull(),
+  gstAmount: integer("gst_amount").notNull().default(0),
+  upiTransactionId: text("upi_transaction_id").notNull(),
+  invoiceDate: text("invoice_date").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type ManualInvoice = typeof manualInvoices.$inferSelect;
+export type NewManualInvoice = typeof manualInvoices.$inferInsert;
+
 export const pincodes = pgTable("pincodes", {
   pincode: text("pincode").primaryKey(),
   latitude: real("latitude").notNull(),

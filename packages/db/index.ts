@@ -22,6 +22,7 @@ export const db = new Proxy({} as ReturnType<typeof drizzle>, {
 });
 
 export { sql, eq, desc, inArray, schema };
+export { manualInvoices } from "./schema";
 
 /** Ensure orders table columns exist (batch, pickup date, weight). Safe on every admin/store request. */
 let ensureOrdersColumnsPromise: Promise<void> | null = null;
