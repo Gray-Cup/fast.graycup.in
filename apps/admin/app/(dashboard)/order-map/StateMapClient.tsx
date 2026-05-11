@@ -118,5 +118,5 @@ export default function StateMapClient({ states }: { states: StateCount[] }) {
     return () => { map?.remove(); };
   }, [states]);
 
-  return <div ref={containerRef} className="w-full h-full" />;
+  return <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />;
 }
