@@ -13,6 +13,7 @@ type Order = {
   weightCategory?: string;
   totalWeightGrams?: number;
   createdAt: string;
+  source?: "website" | "manual";
 };
 type Period = "today" | "week" | "lifetime";
 type PatternTab = "hour" | "weekday" | "month";
@@ -551,6 +552,9 @@ function RecentOrders({ orders, period }: { orders: Order[]; period: Period }) {
                   <span className="text-[10px] font-bold text-gray-300 tabular-nums w-6 shrink-0">#{o.orderNumber}</span>
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[st] ?? "bg-gray-300"}`} />
                   <span className="font-mono text-xs font-bold text-gray-700 flex-1 truncate">{o.orderRef}</span>
+                  {o.source === "manual" && (
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-orange-500 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded shrink-0">Manual</span>
+                  )}
                   <span className="text-[10px] text-gray-400 tabular-nums shrink-0">
                     {new Date(o.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}
                   </span>
@@ -610,7 +614,7 @@ export default function AdminHome() {
   const [period, setPeriod] = useState<Period>("lifetime");
 
   useEffect(() => {
-    fetch("/api/orders")
+    fetch("/api/dashboard-orders")
       .then((r) => r.json())
       .then((data) => { setOrders(data); setLoading(false); })
       .catch(() => setLoading(false));
