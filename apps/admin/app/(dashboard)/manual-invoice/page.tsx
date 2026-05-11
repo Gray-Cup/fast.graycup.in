@@ -13,6 +13,7 @@ const today = new Date().toISOString().split("T")[0];
 
 export default function ManualInvoicePage() {
   const [form, setForm] = useState({
+    invoiceNumber: "",
     buyerName: "",
     buyerPhone: "",
     buyerEmail: "",
@@ -73,6 +74,7 @@ export default function ManualInvoicePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          invoiceNumber: form.invoiceNumber.trim() || undefined,
           quantity: parseInt(form.quantity) || 1,
           amount: parseInt(form.amount),
           gstAmount: parseInt(form.gstAmount) || 0,
@@ -124,6 +126,16 @@ export default function ManualInvoicePage() {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* Form */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Invoice Number</label>
+            <input
+              value={form.invoiceNumber}
+              onChange={(e) => set("invoiceNumber", e.target.value.toUpperCase())}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:outline-none focus:border-amber-400"
+              placeholder="GCMINV-XXXX0000000 (leave blank to auto-generate)"
+            />
+          </div>
+
           <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">Buyer Details</p>
 
           <div className="grid grid-cols-2 gap-4">

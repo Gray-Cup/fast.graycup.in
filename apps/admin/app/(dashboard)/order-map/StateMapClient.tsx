@@ -82,6 +82,47 @@ function buildDataMap(states: StateCount[]) {
   return out;
 }
 
+function computeOuterBoundary(geojson: GeoJSON.FeatureCollection): GeoJSON.Feature {
+  const edgeCount = new Map<string, number>();
+  const edgeCoords = new Map<string, [[number, number], [number, number]]>();
+
+  function edgeKey(a: [number, number], b: [number, number]): string {
+    const [x1, y1] = a, [x2, y2] = b;
+    return (x1 < x2 || (x1 === x2 && y1 <= y2))
+      ? `${x1},${y1}|${x2},${y2}`
+      : `${x2},${y2}|${x1},${y1}`;
+  }
+
+  for (const feature of geojson.features) {
+    const geom = feature.geometry as GeoJSON.Polygon | GeoJSON.MultiPolygon;
+    const rings: number[][][] =
+      geom.type === "Polygon"
+        ? geom.coordinates
+        : geom.coordinates.flat(1);
+
+    for (const ring of rings) {
+      for (let i = 0; i < ring.length - 1; i++) {
+        const a = ring[i] as [number, number];
+        const b = ring[i + 1] as [number, number];
+        const key = edgeKey(a, b);
+        edgeCount.set(key, (edgeCount.get(key) ?? 0) + 1);
+        edgeCoords.set(key, [a, b]);
+      }
+    }
+  }
+
+  const outerEdges: [number, number][][] = [];
+  for (const [key, count] of edgeCount) {
+    if (count === 1) outerEdges.push(edgeCoords.get(key)!);
+  }
+
+  return {
+    type: "Feature",
+    geometry: { type: "MultiLineString", coordinates: outerEdges },
+    properties: {},
+  };
+}
+
 const BLANK_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {},
@@ -142,6 +183,11 @@ export default function StateMapClient({ states }: { states: StateCount[] }) {
 
       map.addSource("states", { type: "geojson", data: augmented, promoteId: "id" });
 
+      map.addSource("india-border", {
+        type: "geojson",
+        data: computeOuterBoundary(geojson),
+      });
+
       // Orange → red color steps (white = no orders)
       const colorSteps: maplibregl.ExpressionSpecification = max === 0
         ? ["literal", "#ffffff"]
@@ -179,6 +225,17 @@ export default function StateMapClient({ states }: { states: StateCount[] }) {
         paint: {
           "line-color": "#d1d5db",
           "line-width": ["case", ["boolean", ["feature-state", "hover"], false], 1.5, 0.7],
+        },
+      });
+
+      map.addLayer({
+        id: "india-outline",
+        type: "line",
+        source: "india-border",
+        paint: {
+          "line-color": "#111827",
+          "line-width": 2.8,
+          "line-opacity": 1,
         },
       });
 

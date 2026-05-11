@@ -18,6 +18,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
+      invoiceNumber: customInvoiceNumber,
       buyerName, buyerPhone, buyerEmail, buyerAddress, buyerPincode,
       itemDescription, itemVariant, quantity, amount, gstAmount,
       upiTransactionId, upiScreenshotDataUri, date,
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const invoiceNumber = generateManualInvoiceNumber();
+    const invoiceNumber = (customInvoiceNumber as string | undefined)?.trim() || generateManualInvoiceNumber();
 
     const pdf = await renderToBuffer(
       React.createElement(ManualInvoicePdf, {
