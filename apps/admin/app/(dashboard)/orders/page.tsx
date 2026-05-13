@@ -478,6 +478,62 @@ function LabelDownloadModal({ progress }: { progress: LabelProgress }) {
   );
 }
 
+// ─── Mark Delivered Modal ────────────────────────────────────────────────────
+
+function MarkDeliveredModal({
+  order,
+  onConfirm,
+  onClose,
+}: {
+  order: Order;
+  onConfirm: (awb: string) => void;
+  onClose: () => void;
+}) {
+  const existingAwb = order.carrier === "shadowfax" ? (order.shadowfaxRequestId ?? "") : (order.delhiveryWaybill ?? "");
+  const [awb, setAwb] = useState(existingAwb);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col gap-5">
+        <div>
+          <h2 className="text-base font-black text-gray-900">Mark as Delivered</h2>
+          <p className="text-xs text-gray-400 mt-0.5 font-mono">{order.orderRef}</p>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">AWB / Tracking Number</label>
+          <input
+            type="text"
+            value={awb}
+            onChange={(e) => setAwb(e.target.value)}
+            placeholder="Enter AWB or leave blank"
+            className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-400"
+            autoFocus
+          />
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onConfirm(awb)}
+            className="flex-1 py-2.5 text-sm font-black text-white bg-green-600 hover:bg-green-700 rounded-xl transition-colors"
+          >
+            Mark Delivered
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Toast ───────────────────────────────────────────────────────────────────
 
 function Toast({ type, msg }: { type: "success" | "error"; msg: string }) {
@@ -508,6 +564,7 @@ export default function OrdersPage() {
   const [hideExpired, setHideExpired] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [markDeliveredOrder, setMarkDeliveredOrder] = useState<Order | null>(null);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [labelProgress, setLabelProgress] = useState<LabelProgress | null>(null);
@@ -796,11 +853,22 @@ export default function OrdersPage() {
     setBusy(false);
   };
 
-  const markDelivered = async (orderRef: string) => {
-    if (!confirm(`Mark ${orderRef} as delivered?`)) return;
+  const markDelivered = (orderRef: string) => {
+    const order = orders.find((o) => o.orderRef === orderRef);
+    if (order) setMarkDeliveredOrder(order);
+  };
+
+  const confirmMarkDelivered = async (awb: string) => {
+    if (!markDeliveredOrder) return;
+    const { orderRef } = markDeliveredOrder;
+    setMarkDeliveredOrder(null);
     setBusy(true);
     try {
-      const res = await fetch(`/api/orders/${orderRef}/mark-delivered`, { method: "POST" });
+      const res = await fetch(`/api/orders/${orderRef}/mark-delivered`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ awb }),
+      });
       const data = await res.json();
       if (data.success) { showToast("success", "Marked as delivered"); loadOrders(); }
       else showToast("error", data.error || "Failed");
@@ -1102,6 +1170,14 @@ export default function OrdersPage() {
 
       {selectedOrder && (
         <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+      )}
+
+      {markDeliveredOrder && (
+        <MarkDeliveredModal
+          order={markDeliveredOrder}
+          onConfirm={confirmMarkDelivered}
+          onClose={() => setMarkDeliveredOrder(null)}
+        />
       )}
     </div>
   );
