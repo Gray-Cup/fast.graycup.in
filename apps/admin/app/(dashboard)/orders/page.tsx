@@ -221,17 +221,19 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
 function RowActions({
   order, busy,
-  onView, onCreateWaybill, onCreateShadowfax, onTriggerPickup, onSyncStatus, onVerifyPayment, onCancel, onShadowfaxCancel, onRefund, onDelete,
+  onView, onCreateWaybill, onCreateShadowfax, onRetriggerShadowfax, onTriggerPickup, onSyncStatus, onVerifyPayment, onCancel, onShadowfaxCancel, onMarkDelivered, onRefund, onDelete,
 }: {
   order: Order; busy: boolean;
   onView: () => void;
   onCreateWaybill: () => void;
   onCreateShadowfax: () => void;
+  onRetriggerShadowfax: () => void;
   onTriggerPickup: () => void;
   onSyncStatus: () => void;
   onVerifyPayment: () => void;
   onCancel: () => void;
   onShadowfaxCancel: () => void;
+  onMarkDelivered: () => void;
   onRefund: () => void;
   onDelete: () => void;
 }) {
@@ -301,6 +303,16 @@ function RowActions({
             </button>
           )}
 
+          {order.carrier === "shadowfax" && order.shadowfaxRequestId && (
+            <button
+              onClick={() => { onRetriggerShadowfax(); setOpen(false); }}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 text-indigo-600 disabled:opacity-40"
+            >
+              Re-trigger Shadowfax
+            </button>
+          )}
+
           {isPickupAwaiting && hasWaybill && (
             <button
               onClick={() => { onTriggerPickup(); setOpen(false); }}
@@ -348,6 +360,16 @@ function RowActions({
               className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 disabled:opacity-40"
             >
               Cancel Shadowfax
+            </button>
+          )}
+
+          {["DISPATCHED", "PAID_DISPATCH_PENDING"].includes(normalizedStatus) && (
+            <button
+              onClick={() => { onMarkDelivered(); setOpen(false); }}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-green-50 text-green-700 disabled:opacity-40"
+            >
+              Mark as Delivered
             </button>
           )}
 
@@ -774,6 +796,34 @@ export default function OrdersPage() {
     setBusy(false);
   };
 
+  const markDelivered = async (orderRef: string) => {
+    if (!confirm(`Mark ${orderRef} as delivered?`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/orders/${orderRef}/mark-delivered`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) { showToast("success", "Marked as delivered"); loadOrders(); }
+      else showToast("error", data.error || "Failed");
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
+  const retriggerShadowfaxShipment = async (orderRef: string) => {
+    if (!confirm(`Re-trigger Shadowfax for ${orderRef}? This will void the old AWB and create a new one.`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/orders/${orderRef}/shadowfax-retrigger`, { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        showToast("success", `New Shadowfax order: ${data.requestId}`);
+        loadOrders();
+      } else {
+        showToast("error", data.error || "Re-trigger failed");
+      }
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
   const bulkCreateShadowfaxOrders = async () => {
     if (selectedUnfulfilledSfx.length === 0) { showToast("error", "Select PAID orders first"); return; }
     setBusy(true);
@@ -1027,11 +1077,13 @@ export default function OrdersPage() {
                       onView={() => setSelectedOrder(o)}
                       onCreateWaybill={() => createWaybill(o.orderRef)}
                       onCreateShadowfax={() => createShadowfaxShipment(o.orderRef)}
+                      onRetriggerShadowfax={() => retriggerShadowfaxShipment(o.orderRef)}
                       onTriggerPickup={() => triggerPickup([o.orderRef])}
                       onSyncStatus={() => o.carrier === "shadowfax" ? syncShadowfaxTracking([o.orderRef]) : syncTracking([o.orderRef])}
                       onVerifyPayment={() => verifyPayment(o.orderRef)}
                       onCancel={() => cancelShipment(o.orderRef)}
                       onShadowfaxCancel={() => cancelShadowfaxShipment(o.orderRef)}
+                      onMarkDelivered={() => markDelivered(o.orderRef)}
                       onRefund={() => refundOrder(o.orderRef)}
                       onDelete={() => deleteOrder(o.orderRef)}
                     />
