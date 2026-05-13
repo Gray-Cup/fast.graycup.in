@@ -23,6 +23,8 @@ type Order = {
   status: string;
   delhiveryWaybill: string | null;
   delhiveryPickupDate: string | null;
+  shadowfaxRequestId: string | null;
+  carrier: string | null;
   invoiceKey: string | null;
   invoiceNumber: string | null;
   createdAt: string;
@@ -219,15 +221,17 @@ function OrderDetailModal({ order, onClose }: { order: Order; onClose: () => voi
 
 function RowActions({
   order, busy,
-  onView, onCreateWaybill, onTriggerPickup, onSyncStatus, onVerifyPayment, onCancel, onRefund, onDelete,
+  onView, onCreateWaybill, onCreateShadowfax, onTriggerPickup, onSyncStatus, onVerifyPayment, onCancel, onShadowfaxCancel, onRefund, onDelete,
 }: {
   order: Order; busy: boolean;
   onView: () => void;
   onCreateWaybill: () => void;
+  onCreateShadowfax: () => void;
   onTriggerPickup: () => void;
   onSyncStatus: () => void;
   onVerifyPayment: () => void;
   onCancel: () => void;
+  onShadowfaxCancel: () => void;
   onRefund: () => void;
   onDelete: () => void;
 }) {
@@ -283,7 +287,17 @@ function RowActions({
               disabled={busy}
               className="w-full text-left px-4 py-2 text-sm hover:bg-blue-50 text-blue-700 disabled:opacity-40"
             >
-              Create Waybill
+              Create Waybill (Delhivery)
+            </button>
+          )}
+
+          {canCreateWaybill && (
+            <button
+              onClick={() => { onCreateShadowfax(); setOpen(false); }}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 text-indigo-700 disabled:opacity-40"
+            >
+              Create Shadowfax Order
             </button>
           )}
 
@@ -297,7 +311,7 @@ function RowActions({
             </button>
           )}
 
-          {hasWaybill && (
+          {(hasWaybill || order.shadowfaxRequestId) && (
             <button
               onClick={() => { onSyncStatus(); setOpen(false); }}
               disabled={busy}
@@ -324,6 +338,16 @@ function RowActions({
               className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 disabled:opacity-40"
             >
               Cancel Shipment
+            </button>
+          )}
+
+          {order.carrier === "shadowfax" && isPickupAwaiting && (
+            <button
+              onClick={() => { onShadowfaxCancel(); setOpen(false); }}
+              disabled={busy}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 text-red-600 disabled:opacity-40"
+            >
+              Cancel Shadowfax
             </button>
           )}
 
@@ -526,8 +550,13 @@ export default function OrdersPage() {
     return o && ["PAID", "PAID_DISPATCH_PENDING"].includes(normalizeStatus(o.status));
   });
   const selectedWithWaybill = selectedRefs.filter((ref) =>
-    orders.find((o) => o.orderRef === ref && o.delhiveryWaybill)
+    orders.find((o) => o.orderRef === ref && (o.delhiveryWaybill || o.shadowfaxRequestId))
   );
+
+  const selectedUnfulfilledSfx = selectedRefs.filter((ref) => {
+    const o = orders.find((x) => x.orderRef === ref);
+    return o && normalizeStatus(o.status) === "PAID";
+  });
 
   // ── Bulk actions ──
 
@@ -714,6 +743,69 @@ export default function OrdersPage() {
     setBusy(false);
   };
 
+  const createShadowfaxShipment = async (orderRef: string) => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/orders/shadowfax-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderRef }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast("success", `Shadowfax order created: ${data.requestId}`);
+        loadOrders();
+      } else {
+        showToast("error", data.error || "Failed to create Shadowfax order");
+      }
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
+  const cancelShadowfaxShipment = async (orderRef: string) => {
+    if (!confirm(`Cancel Shadowfax order for ${orderRef}?`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/orders/${orderRef}/shadowfax-cancel`, { method: "POST" });
+      const data = await res.json();
+      showToast(data.success ? "success" : "error", data.message || data.error || "Done");
+      if (data.success) loadOrders();
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
+  const bulkCreateShadowfaxOrders = async () => {
+    if (selectedUnfulfilledSfx.length === 0) { showToast("error", "Select PAID orders first"); return; }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/orders/shadowfax-bulk-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderRefs: selectedUnfulfilledSfx }),
+      });
+      const data = await res.json();
+      showToast(data.success ? "success" : "error", data.message || data.error || "Done");
+      loadOrders();
+      setSelected(new Set());
+    } catch { showToast("error", "Request failed"); }
+    setBusy(false);
+  };
+
+  const syncShadowfaxTracking = async (refs?: string[]) => {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/orders/shadowfax-sync-tracking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderRefs: refs }),
+      });
+      const data = await res.json();
+      showToast("success", data.message || "Shadowfax synced");
+      loadOrders();
+    } catch { showToast("error", "Shadowfax sync failed"); }
+    setBusy(false);
+  };
+
   return (
     <div className="flex flex-col h-full gap-3">
       {toast && <Toast type={toast.type} msg={toast.msg} />}
@@ -752,7 +844,17 @@ export default function OrdersPage() {
                 disabled={busy}
                 className="px-3 py-1.5 text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors"
               >
-                Generate Waybills ({selectedUnfulfilled.length})
+                Delhivery Waybills ({selectedUnfulfilled.length})
+              </button>
+            )}
+
+            {selectedUnfulfilledSfx.length > 0 && (
+              <button
+                onClick={bulkCreateShadowfaxOrders}
+                disabled={busy}
+                className="px-3 py-1.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 transition-colors"
+              >
+                Shadowfax Orders ({selectedUnfulfilledSfx.length})
               </button>
             )}
 
@@ -909,7 +1011,11 @@ export default function OrdersPage() {
                       pickupDate={o.delhiveryPickupDate}
                     />
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500">{o.delhiveryWaybill || "—"}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-gray-500">
+                    {o.carrier === "shadowfax" && o.shadowfaxRequestId
+                      ? <span className="flex items-center gap-1"><span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded text-[10px] font-bold not-mono">SFX</span>{o.shadowfaxRequestId}</span>
+                      : (o.delhiveryWaybill || "—")}
+                  </td>
                   <td className="px-4 py-3 text-xs text-gray-400">
                     <div>{new Date(o.createdAt).toLocaleDateString("en-IN")}</div>
                     <div className="font-mono tabular-nums">{new Date(o.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}</div>
@@ -920,10 +1026,12 @@ export default function OrdersPage() {
                       busy={busy}
                       onView={() => setSelectedOrder(o)}
                       onCreateWaybill={() => createWaybill(o.orderRef)}
+                      onCreateShadowfax={() => createShadowfaxShipment(o.orderRef)}
                       onTriggerPickup={() => triggerPickup([o.orderRef])}
-                      onSyncStatus={() => syncTracking([o.orderRef])}
+                      onSyncStatus={() => o.carrier === "shadowfax" ? syncShadowfaxTracking([o.orderRef]) : syncTracking([o.orderRef])}
                       onVerifyPayment={() => verifyPayment(o.orderRef)}
                       onCancel={() => cancelShipment(o.orderRef)}
+                      onShadowfaxCancel={() => cancelShadowfaxShipment(o.orderRef)}
                       onRefund={() => refundOrder(o.orderRef)}
                       onDelete={() => deleteOrder(o.orderRef)}
                     />

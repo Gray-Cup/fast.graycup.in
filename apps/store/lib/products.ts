@@ -16,6 +16,7 @@ export interface Product {
   image_url: string;
   variants: ProductVariant[];
   origin: string;
+  outOfStock?: boolean;
 }
 
 export const GST_RATE = 0.05; // Tea and coffee: 5% GST
@@ -40,6 +41,7 @@ export const products: Product[] = [
     image_url:
       "/samples.webp",
     origin: "Assam, India",
+    outOfStock: true,
     variants: [
       { label: "150gm", weightGrams: 150, price: 100, batchId: "GRAYB1" },
     ],

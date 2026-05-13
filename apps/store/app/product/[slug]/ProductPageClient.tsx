@@ -68,17 +68,38 @@ export default function ProductPageClient({ slug }: { slug: string }) {
             </div>
 
             <div className="border-t border-gray-100 pt-6">
-              <div className="mb-5">
-                <div className="flex items-baseline gap-2 mb-1">
-                  <span className="text-5xl font-black text-gray-900">₹{total}</span>
-                  {quantity > 1 && <span className="text-sm text-gray-500">(₹{variant.price} × {quantity})</span>}
+              {product.outOfStock ? (
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3 bg-gray-100 rounded-2xl px-5 py-4">
+                    <span className="text-2xl">😔</span>
+                    <div>
+                      <p className="font-black text-gray-900 text-base">Currently Out of Stock</p>
+                      <p className="text-sm text-gray-500 mt-0.5">We&apos;ve sold out of this size for now.</p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/product/ctc-blend"
+                    className="w-full text-center font-black text-xl py-5 rounded-2xl transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 bg-amber-500 hover:bg-amber-600 text-white"
+                  >
+                    Pre-book 500gm Pack — Coming Soon
+                  </Link>
+                  <p className="text-xs text-center text-gray-400">The 500gm pack will ship soon. Pre-book to secure yours.</p>
                 </div>
-                <p className="text-xs text-gray-400">Incl. 5% GST (CGST 2.5% + SGST 2.5% = ₹{gst})</p>
-              </div>
-              <button onClick={() => setShowCheckout(true)}
-                className={`w-full font-black text-xl py-5 rounded-2xl transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 mb-3 ${isCoffee ? "bg-stone-900 hover:bg-stone-800 text-white" : "bg-amber-500 hover:bg-amber-600 text-white"}`}>
-                Buy Now
-              </button>
+              ) : (
+                <>
+                  <div className="mb-5">
+                    <div className="flex items-baseline gap-2 mb-1">
+                      <span className="text-5xl font-black text-gray-900">₹{total}</span>
+                      {quantity > 1 && <span className="text-sm text-gray-500">(₹{variant.price} × {quantity})</span>}
+                    </div>
+                    <p className="text-xs text-gray-400">Incl. 5% GST (CGST 2.5% + SGST 2.5% = ₹{gst})</p>
+                  </div>
+                  <button onClick={() => setShowCheckout(true)}
+                    className={`w-full font-black text-xl py-5 rounded-2xl transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 mb-3 ${isCoffee ? "bg-stone-900 hover:bg-stone-800 text-white" : "bg-amber-500 hover:bg-amber-600 text-white"}`}>
+                    Buy Now
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -94,10 +115,19 @@ export default function ProductPageClient({ slug }: { slug: string }) {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-2xl lg:hidden z-40">
-        <button onClick={() => setShowCheckout(true)}
-          className={`w-full font-black text-lg py-4 rounded-2xl transition-all ${isCoffee ? "bg-stone-900 hover:bg-stone-800 text-white" : "bg-amber-500 hover:bg-amber-600 text-white"}`}>
-          Buy Now · ₹{total}
-        </button>
+        {product.outOfStock ? (
+          <Link
+            href="/product/ctc-blend"
+            className="block w-full text-center font-black text-lg py-4 rounded-2xl transition-all bg-amber-500 hover:bg-amber-600 text-white"
+          >
+            Pre-book 500gm — Coming Soon
+          </Link>
+        ) : (
+          <button onClick={() => setShowCheckout(true)}
+            className={`w-full font-black text-lg py-4 rounded-2xl transition-all ${isCoffee ? "bg-stone-900 hover:bg-stone-800 text-white" : "bg-amber-500 hover:bg-amber-600 text-white"}`}>
+            Buy Now · ₹{total}
+          </button>
+        )}
       </div>
 
       {showCheckout && (

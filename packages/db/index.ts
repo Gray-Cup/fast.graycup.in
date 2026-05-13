@@ -40,6 +40,8 @@ export function ensureOrdersColumns(): Promise<void> {
       await db.execute(
         sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS total_weight_grams INTEGER NOT NULL DEFAULT 150`
       );
+      await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS shadowfax_request_id TEXT`);
+      await db.execute(sql`ALTER TABLE orders ADD COLUMN IF NOT EXISTS carrier TEXT NOT NULL DEFAULT 'delhivery'`);
     })();
   }
   return ensureOrdersColumnsPromise;

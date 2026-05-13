@@ -123,6 +123,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid product or variant" }, { status: 400 });
     }
 
+    const allProductIds = body.items ? body.items.map((i) => i.productId) : [productId];
+    const outOfStockProduct = products.find((p) => p.outOfStock && allProductIds.includes(p.id));
+    if (outOfStockProduct) {
+      return NextResponse.json({ error: "This product is currently out of stock" }, { status: 400 });
+    }
+
     if (!customer?.name || !customer?.phone || !customer?.address || !customer?.pincode) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }

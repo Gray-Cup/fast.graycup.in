@@ -22,6 +22,8 @@ export const orders = pgTable("orders", {
   batchId: text("batch_id"),
   delhiveryWaybill: text("delhivery_waybill"),
   delhiveryPickupDate: text("delhivery_pickup_date"),
+  shadowfaxRequestId: text("shadowfax_request_id"),
+  carrier: text("carrier").default("delhivery"),
   invoiceKey: text("invoice_key"),
   invoiceNumber: text("invoice_number"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
